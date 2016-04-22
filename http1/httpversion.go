@@ -36,6 +36,8 @@ type Entry struct {
 }
 
 type HttpVersionResult struct {
+	Started time.Time
+	Finished time.Time
 	CompleteResult map[string][]Entry
 	ResultAmount   map[string]int
 }
@@ -50,9 +52,17 @@ func (e Entry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
+	httpVersionResult := HttpVersionResult{}
+	httpVersionResult.Started = time.Now()
+
 	worker.ParseFile(path, workOnLine)
-	httpVersionResult := HttpVersionResult{hosts.m, sumUpResult()}
+
+	httpVersionResult.CompleteResult = hosts.m
+	httpVersionResult.ResultAmount = sumUpResult()
+	httpVersionResult.Finished = time.Now()
+
 	writeMapToFile(OUTPUT_FILE_LOCATION + "/", OUTPUT_FILE_NAME, httpVersionResult)
+
 	return httpVersionResult
 }
 
