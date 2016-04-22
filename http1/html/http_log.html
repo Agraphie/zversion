@@ -8,11 +8,11 @@
         window.onload = function () {
             var chart = new CanvasJS.Chart("chartContainer",
                     {
-                        title: {
+                        title:{
                             text: "{{ .Title}}"
                         },
                         animationEnabled: true,
-                        legend: {
+                        legend:{
                             verticalAlign: "bottom",
                             horizontalAlign: "center"
                         },
@@ -27,33 +27,15 @@
                                 showInLegend: true,
                                 toolTipContent: "{y} - <strong>#percent%</strong>",
                                 dataPoints: [
-                                    {{range $key, $value: =.Results.ResultAmount
-                            }
-                    }
+                                    {{ range $key, $value := .Results.ResultAmount }}
 
-            {
-                y: {
-                    {
-                        $value
-                    }
-                }
-            ,
-                legendText:"{{$key}}", indexLabel
-            :
-                "{{$key}}"
-            }
-            ,
-            {
-                {
-                    end
-                }
-            }
+            {  y: {{$value }}, legendText:"{{$key}}", indexLabel: "{{$key}}" },
+            {{ end }}
 
             ]
         }
             ]
-        })
-            ;
+        });
             chart.render();
         }
     </script>
