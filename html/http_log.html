@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ .Title}}</title>
+    <script type="text/javascript" src="/static/canvasjs.min.js"></script>
+    <script type="text/javascript">
+        window.onload = function () {
+            var chart = new CanvasJS.Chart("chartContainer",
+                    {
+                        title: {
+                            text: "{{ .Title}}"
+                        },
+                        animationEnabled: true,
+                        legend: {
+                            verticalAlign: "bottom",
+                            horizontalAlign: "center"
+                        },
+                        data: [
+                            {
+                                indexLabelFontSize: 20,
+                                indexLabelFontFamily: "Monospace",
+                                indexLabelFontColor: "darkgrey",
+                                indexLabelLineColor: "darkgrey",
+                                indexLabelPlacement: "outside",
+                                type: "pie",
+                                showInLegend: true,
+                                toolTipContent: "{y} - <strong>#percent%</strong>",
+                                dataPoints: [
+                                    {{range $key, $value: =.Results.ResultAmount
+                            }
+                    }
+
+            {
+                y: {
+                    {
+                        $value
+                    }
+                }
+            ,
+                legendText:"{{$key}}", indexLabel
+            :
+                "{{$key}}"
+            }
+            ,
+            {
+                {
+                    end
+                }
+            }
+
+            ]
+        }
+            ]
+        })
+            ;
+            chart.render();
+        }
+    </script>
+</head>
+<body>
+<div id="chartContainer" style="height: 500px; width: 100%;"></div>
+</body>
+</html>

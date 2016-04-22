@@ -10,11 +10,17 @@ import (
 	"fmt"
 	"regexp"
 	"github.com/agraphie/zversion/http1"
+	"encoding/json"
 )
 
 type httpVersionVars struct {
 	Logs    []string
 	Banners []string
+}
+
+type httpLogVars struct {
+	Title   string
+	Results http1.HttpVersionResult
 }
 
 var templatesPath = "templates"
@@ -25,6 +31,8 @@ func init() {
 }
 
 func main() {
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./html/static"))))
+
 	http.HandleFunc("/", indexViewHandler)
 	http.HandleFunc("/httpVersions/", parseHttpViewHandler)
 	//http.HandleFunc("/httpVersions/.*", httpLogViewHandler)
@@ -33,7 +41,20 @@ func main() {
 }
 
 func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r)
+	fileName := strings.Split(r.URL.String(), "/")[2]
+	file, e := ioutil.ReadFile("http_logs/" + fileName + ".json")
+
+	if e != nil {
+		http.Redirect(w, r, "/httpVersions/", http.StatusNotFound)
+		return
+	}
+
+	var jsonResult http1.HttpVersionResult
+	json.Unmarshal(file, &jsonResult)
+
+	httpLogVars := httpLogVars{fileName, jsonResult}
+	t, _ := template.ParseFiles("html/http_log.html")
+	t.Execute(w, httpLogVars)
 }
 
 func parseHttpViewHandler(w http.ResponseWriter, r *http.Request) {

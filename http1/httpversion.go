@@ -35,6 +35,11 @@ type Entry struct {
 	Error string
 }
 
+type HttpVersionResult struct {
+	CompleteResult map[string][]Entry
+	ResultAmount   map[string]int
+}
+
 var hosts = struct {
 	sync.RWMutex
 	m map[string][]Entry
@@ -44,14 +49,23 @@ func (e Entry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Agent: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Agent)
 }
 
-func ParseHttpFile(path string) map[string][]Entry {
-	fmt.Println("yay")
+func ParseHttpFile(path string) HttpVersionResult {
 	worker.ParseFile(path, workOnLine)
-
-	writeMapToFile(OUTPUT_FILE_LOCATION + "/", OUTPUT_FILE_NAME, hosts.m)
-	return hosts.m
+	httpVersionResult := HttpVersionResult{hosts.m, sumUpResult()}
+	writeMapToFile(OUTPUT_FILE_LOCATION + "/", OUTPUT_FILE_NAME, httpVersionResult)
+	return httpVersionResult
 }
 
+func sumUpResult() map[string]int {
+	summedUp := make(map[string]int)
+	for key, _ := range hosts.m {
+		for range hosts.m[key] {
+			summedUp[key] = summedUp[key] + 1
+		}
+	}
+
+	return summedUp
+}
 func removeSpaces(str string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) {
@@ -103,7 +117,7 @@ func addToMap(key string, entry Entry) {
 	hosts.Unlock()
 }
 
-func writeMapToFile(path string, filename string, hosts map[string][]Entry) {
+func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
 	if !checkPathExist() {
 		err := os.MkdirAll(OUTPUT_FILE_LOCATION, FILE_ACCESS_PERMISSION)
 		check(err)
@@ -114,7 +128,7 @@ func writeMapToFile(path string, filename string, hosts map[string][]Entry) {
 	check(err)
 	defer f.Close()
 
-	j, jerr := json.MarshalIndent(hosts, "", "  ")
+	j, jerr := json.MarshalIndent(httpVersionResult, "", "  ")
 	if jerr != nil {
 		fmt.Println("jerr:", jerr.Error())
 	}
