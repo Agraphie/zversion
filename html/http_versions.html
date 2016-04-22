@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTTP Scans</title>
+</head>
+<body>
+{{ range .Logs }}
+<li><a href="/httpVersions/{{ . }}">{{ . }}</a></li>
+{{ end }}
+
+<form method="POST" action="/httpVersions/">
+    <input type="search" list="location" name="location"/>
+    <label for="location">Dateipfad</label>
+    <datalist id="location">
+        {{ range .Banners }}
+        <option value="{{.}}">
+            {{ end }}
+    </datalist>
+    <input type="submit" value="Abschicken!"/>
+</form>
+</body>
+</html>

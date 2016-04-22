@@ -17,9 +17,12 @@ const NO_AGENT_KEY = "Not set"
 const ERROR_KEY = "Error"
 const SERVER_AGENT_STRING = "Server"
 const SERVER_AGENT_DELIMITER = ":"
-const OUTPUT_FILE_LOCATION = "http_version"
+const OUTPUT_FILE_LOCATION = "http_logs"
+const OUTPUT_FILE_NAME = "http_version"
 const OUTPUT_FILE_ENDING = ".json"
-const TIMESTAMP_FORMAT = "2006-01-02-15:04"
+const FILE_ACCESS_PERMISSION = 0755
+
+const TIMESTAMP_FORMAT = "2006-01-02-15:04:00"
 
 
 type Entry struct {
@@ -42,9 +45,10 @@ func (e Entry) String() string {
 }
 
 func ParseHttpFile(path string) map[string][]Entry {
+	fmt.Println("yay")
 	worker.ParseFile(path, workOnLine)
 
-	writeMapToFile(OUTPUT_FILE_LOCATION, hosts.m)
+	writeMapToFile(OUTPUT_FILE_LOCATION + "/", OUTPUT_FILE_NAME, hosts.m)
 	return hosts.m
 }
 
@@ -99,9 +103,14 @@ func addToMap(key string, entry Entry) {
 	hosts.Unlock()
 }
 
-func writeMapToFile(path string, hosts map[string][]Entry) {
+func writeMapToFile(path string, filename string, hosts map[string][]Entry) {
+	if !checkPathExist() {
+		err := os.MkdirAll(OUTPUT_FILE_LOCATION, FILE_ACCESS_PERMISSION)
+		check(err)
+	}
+
 	timestamp := time.Now().Format(TIMESTAMP_FORMAT)
-	f, err := os.Create(path + "_" + timestamp + OUTPUT_FILE_ENDING)
+	f, err := os.Create(path + filename + "_" + timestamp + OUTPUT_FILE_ENDING)
 	check(err)
 	defer f.Close()
 
@@ -115,8 +124,23 @@ func writeMapToFile(path string, hosts map[string][]Entry) {
 	w.Flush()
 }
 
+func checkPathExist() bool {
+	_, err := os.Stat(OUTPUT_FILE_LOCATION)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 func check(e error) {
 	if e != nil {
-		panic(e)
+		if os.IsNotExist(e) {
+			os.Mkdir("http_logs", 770)
+		} else {
+			panic(e)
+		}
 	}
 }
