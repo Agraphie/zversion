@@ -42,5 +42,9 @@
 </head>
 <body>
 <div id="chartContainer" style="height: 500px; width: 100%;"></div>
+    {{ range $key, $value := .Results.ResultAmount }}
+        <p>{{$key}}: {{$value }}</p>
+    {{ end }}
+    <a href="/httpVersions/">Zurück</a>
 </body>
 </html>
