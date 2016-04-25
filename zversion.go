@@ -19,7 +19,7 @@ import (
 var (
 	strFlag = flag.String("long-string", "", "Description")
 	portFlag = flag.String("port", "80", "The port to scan")
-	scanTargets = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
+	scanTargets = flag.String("targets", "10000", "How many targets should be scanned, absolute or percentage value")
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
 )
@@ -50,20 +50,35 @@ func main() {
 
 func LaunchHttpScan(){
 	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
-
 	if !util.CheckPathExist(*scanOutputPath+timestamp) {
 		err := os.MkdirAll(*scanOutputPath+timestamp, FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
+
+
 	currentScanPath := *scanOutputPath+timestamp+"/"
 	nmapOutputFileName := "zmap_output_"+timestamp+".csv"
 	zgrabOutputFileName := "zgrab_output_" + timestamp + ".json"
+
+	zmapErrorLog := "zmap_error_" + timestamp
+	zgrabErrorLog := "zgrab_error_" + timestamp
+
+	zmapErr, _ := os.Create(currentScanPath+zmapErrorLog)
+	zgrabErr, _ := os.Create(currentScanPath+zgrabErrorLog)
+
+
+	defer zmapErr.Close()
+	defer zgrabErr.Close()
+
+	zmapErrW := bufio.NewWriter(zmapErr)
+	zgrabErrW := bufio.NewWriter(zgrabErr)
+
 	c1 := exec.Command("sudo", "zmap", "-p", *portFlag, "-n", *scanTargets)
 	c2 := exec.Command("ztee", currentScanPath+nmapOutputFileName)
 	c3 := exec.Command("zgrab", "--port", *portFlag, "--data=./http-req-head", "--output-file="+ currentScanPath+zgrabOutputFileName)
-	c1.Stderr = os.Stderr
+	c1.Stderr = zmapErrW
 	c2.Stderr = os.Stderr
-	c3.Stderr = os.Stderr
+	c3.Stderr = zgrabErrW
 
 	c2.Stdin, _ = c1.StdoutPipe()
 	c3.Stdin, _ = c2.StdoutPipe()
@@ -74,6 +89,8 @@ func LaunchHttpScan(){
 	_ = c2.Wait()
 	_ = c3.Wait()
 
+	zmapErrW.Flush()
+	zgrabErrW.Flush()
 
 
 }
@@ -123,7 +140,5 @@ func execCommandWithCancel(command string){
 		}
 	}
 }
-func Meh() {
-	//sudo zmap -p 80 -n 1000 -q | ztee results.csv | ./zgrab --port 80 --data=./http-req-head --output-file=/home/agraphie/banners5.json
-}
+
 

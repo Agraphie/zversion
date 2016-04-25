@@ -16,5 +16,7 @@ func CheckPathExist(path string) bool{
 
 
 func Check(e error) {
-	panic(e)
+	if e != nil {
+		panic(e)
+	}
 }
