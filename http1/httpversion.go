@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"os"
 	"time"
+	"github.com/agraphie/zversion/util"
 )
 
 const NO_AGENT = "Not set"
@@ -22,7 +23,6 @@ const OUTPUT_FILE_NAME = "http_version"
 const OUTPUT_FILE_ENDING = ".json"
 const FILE_ACCESS_PERMISSION = 0755
 
-const TIMESTAMP_FORMAT = "2006-01-02-15:04:00"
 
 
 type Entry struct {
@@ -128,14 +128,14 @@ func addToMap(key string, entry Entry) {
 }
 
 func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
-	if !checkPathExist() {
+	if !util.CheckPathExist(OUTPUT_FILE_LOCATION) {
 		err := os.MkdirAll(OUTPUT_FILE_LOCATION, FILE_ACCESS_PERMISSION)
-		check(err)
+		util.Check(err)
 	}
 
-	timestamp := time.Now().Format(TIMESTAMP_FORMAT)
+	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
 	f, err := os.Create(path + filename + "_" + timestamp + OUTPUT_FILE_ENDING)
-	check(err)
+	util.Check(err)
 	defer f.Close()
 
 	j, jerr := json.MarshalIndent(httpVersionResult, "", "  ")
@@ -148,23 +148,4 @@ func writeMapToFile(path string, filename string, httpVersionResult HttpVersionR
 	w.Flush()
 }
 
-func checkPathExist() bool {
-	_, err := os.Stat(OUTPUT_FILE_LOCATION)
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
 
-func check(e error) {
-	if e != nil {
-		if os.IsNotExist(e) {
-			os.Mkdir("http_logs", 770)
-		} else {
-			panic(e)
-		}
-	}
-}

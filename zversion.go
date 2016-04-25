@@ -11,34 +11,70 @@ import (
 	"os/signal"
 	"syscall"
 	"errors"
+	"github.com/agraphie/zversion/util"
+	"time"
 )
 
 
 var (
- strFlag = flag.String("long-string", "", "Description")
- portFlag = flag.String("port", "80", "The port to scan")
- scanTargets = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
- scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
- analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
+	strFlag = flag.String("long-string", "", "Description")
+	portFlag = flag.String("port", "80", "The port to scan")
+	scanTargets = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
+	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
+	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
 )
 
+const FILE_ACCESS_PERMISSION = 0755
 
 func init(){
 	flag.StringVar(strFlag, "s", "", "Description")
 	flag.StringVar(portFlag, "p", "80", "The port to scan")
-	flag.StringVar(scanTargets, "n", "100%", "The port to scan")
+	flag.StringVar(scanTargets, "n", "10000", "The port to scan")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
 
 
 	flag.Parse()
 
+	if !util.CheckPathExist(*scanOutputPath) {
+		err := os.MkdirAll(*scanOutputPath, FILE_ACCESS_PERMISSION)
+		util.Check(err)
+	}
 }
 func main() {
-	execCommandWithCancel("sleep 5")
+	//execCommandWithCancel("sleep 5")
+	//sudo zmap -p 80 -n 10 --output-fields=* | ztee results.csv | zgrab --port 80 --data=./http-req-head --output-file=/home/agraphie/banners5.json --telnet
+	LaunchHttpScan()
+
 }
 
 func LaunchHttpScan(){
+	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
+
+	if !util.CheckPathExist(*scanOutputPath+timestamp) {
+		err := os.MkdirAll(*scanOutputPath+timestamp, FILE_ACCESS_PERMISSION)
+		util.Check(err)
+	}
+	currentScanPath := *scanOutputPath+timestamp+"/"
+	nmapOutputFileName := "zmap_output_"+timestamp+".csv"
+	zgrabOutputFileName := "zgrab_output_" + timestamp + ".json"
+	c1 := exec.Command("sudo", "zmap", "-p", *portFlag, "-n", *scanTargets)
+	c2 := exec.Command("ztee", currentScanPath+nmapOutputFileName)
+	c3 := exec.Command("zgrab", "--port", *portFlag, "--data=./http-req-head", "--output-file="+ currentScanPath+zgrabOutputFileName)
+	c1.Stderr = os.Stderr
+	c2.Stderr = os.Stderr
+	c3.Stderr = os.Stderr
+
+	c2.Stdin, _ = c1.StdoutPipe()
+	c3.Stdin, _ = c2.StdoutPipe()
+	c3.Stdout = os.Stdout
+	_ = c2.Start()
+	_ = c3.Start()
+	_ = c1.Run()
+	_ = c2.Wait()
+	_ = c3.Wait()
+
+
 
 }
 
@@ -57,9 +93,9 @@ func execCommandWithCancel(command string){
 		sig := <-sigs
 		switch sig {
 		case os.Interrupt:
-		done <- errors.New("Interrupted")
+			done <- errors.New("Interrupted")
 		case syscall.SIGTERM:
-		done <- errors.New("Terminated")
+			done <- errors.New("Terminated")
 		}
 	}()
 
