@@ -18,7 +18,6 @@ const NO_AGENT_KEY = "Not set"
 const ERROR_KEY = "Error"
 const SERVER_AGENT_STRING = "Server"
 const SERVER_AGENT_DELIMITER = ":"
-const OUTPUT_FILE_LOCATION = "http_logs"
 const OUTPUT_FILE_NAME = "http_version"
 const OUTPUT_FILE_ENDING = ".json"
 const FILE_ACCESS_PERMISSION = 0755
@@ -52,6 +51,7 @@ func (e Entry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
+	fmt.Println(path)
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
 
@@ -61,8 +61,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.ResultAmount = sumUpResult()
 	httpVersionResult.Finished = time.Now()
 
-	writeMapToFile(OUTPUT_FILE_LOCATION + "/", OUTPUT_FILE_NAME, httpVersionResult)
-	fmt.Println("done")
+	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, OUTPUT_FILE_NAME, httpVersionResult)
 	return httpVersionResult
 }
 
@@ -128,8 +127,8 @@ func addToMap(key string, entry Entry) {
 }
 
 func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
-	if !util.CheckPathExist(OUTPUT_FILE_LOCATION) {
-		err := os.MkdirAll(OUTPUT_FILE_LOCATION, FILE_ACCESS_PERMISSION)
+	if !util.CheckPathExist(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH) {
+		err := os.MkdirAll(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
 
