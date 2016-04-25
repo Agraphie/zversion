@@ -15,7 +15,6 @@ import (
 	"time"
 )
 
-
 var (
 	strFlag = flag.String("long-string", "", "Description")
 	portFlag = flag.String("port", "80", "The port to scan")
@@ -50,13 +49,13 @@ func main() {
 
 func LaunchHttpScan(){
 	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
-	if !util.CheckPathExist(*scanOutputPath+timestamp) {
-		err := os.MkdirAll(*scanOutputPath+timestamp, FILE_ACCESS_PERMISSION)
+	if !util.CheckPathExist(*scanOutputPath+util.HTTP_SCAN_OUTPUTH_PATH+timestamp) {
+		err := os.MkdirAll(*scanOutputPath+util.HTTP_SCAN_OUTPUTH_PATH+timestamp, FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
 
 
-	currentScanPath := *scanOutputPath+timestamp+"/"
+	currentScanPath := *scanOutputPath+util.HTTP_SCAN_OUTPUTH_PATH+timestamp+"/"
 	nmapOutputFileName := "zmap_output_"+timestamp+".csv"
 	zgrabOutputFileName := "zgrab_output_" + timestamp + ".json"
 

@@ -62,7 +62,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.Finished = time.Now()
 
 	writeMapToFile(OUTPUT_FILE_LOCATION + "/", OUTPUT_FILE_NAME, httpVersionResult)
-
+	fmt.Println("done")
 	return httpVersionResult
 }
 
