@@ -84,16 +84,29 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func initialiseHttpVars() httpVersionVars {
-	directories, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH)
+
+	analysisLogs := getAnalysisLogs()
+	bannerLogs := getBannerLogs()
+
+
+	return httpVersionVars{analysisLogs, bannerLogs}
+}
+
+func getAnalysisLogs() []string{
+	files, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH)
 	if (err != nil) {
 		panic(err)
 	}
 	var logs []string
-	for _, d := range directories {
-			fileName := strings.Split(d.Name(), ".")[0]
-			logs = append(logs, fileName)
+	for _, f := range files {
+		fileName := strings.Split(f.Name(), ".")[0]
+		logs = append(logs, fileName)
 	}
-	//bannerFiles, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH)
+
+	return logs
+}
+
+func getBannerLogs() []string{
 	bannerDirectories, err := ioutil.ReadDir(util.SCAN_OUTPUT_BASE_PATH + util.HTTP_SCAN_OUTPUTH_PATH)
 
 	if (err != nil) {
@@ -112,7 +125,5 @@ func initialiseHttpVars() httpVersionVars {
 		}
 
 	}
-
-
-	return httpVersionVars{logs, banners}
+	return banners
 }
