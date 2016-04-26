@@ -41,7 +41,8 @@ type httpLogVars struct {
 }
 
 func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
-	fileName := strings.Split(r.URL.String(), "/")[2]
+	fileNameSplit := strings.Split(r.URL.String(), "/")
+	fileName := fileNameSplit[2] + "/" + fileNameSplit[3]
 	file, e := ioutil.ReadFile(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH + fileName + ".json")
 
 	if e != nil {
@@ -58,11 +59,12 @@ func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
-	match, _ := regexp.MatchString(MAPPING +"http_version_(.*)", r.URL.EscapedPath())
+	match, _ := regexp.MatchString(MAPPING +"zgrab_output_(.*)/http_version_(.*)", r.URL.EscapedPath())
 	match_scan, _ := regexp.MatchString(SCAN_MAPPING, r.URL.EscapedPath())
 
 	if r.Method == "GET" && match {
 		httpLogViewHandler(w, r)
+		return
 	} else if r.Method == "POST" && match_scan {
 		initiateNewHttpScan(w, r)
 		return
@@ -121,9 +123,7 @@ func getRunningScans() []*http1.RunningHttpScan{
 
 func getAnalysisLogs() map[string][]string{
 	directories, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH)
-	if (err != nil) {
-		panic(err)
-	}
+	util.Check(err)
 	logs := make(map[string][]string)
 	for _, d := range directories {
 		files, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH + d.Name())

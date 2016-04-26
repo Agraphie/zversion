@@ -15,7 +15,7 @@
         {{ range $key, $value := .Logs }}
             {{ range $meh, $log := $value }}
                 <tr>
-                    <td><a href="/httpVersions/{{ $log }}">{{ $log }}</a></td>
+                    <td><a href="/httpVersions/{{ $key }}/{{ $log }}">{{ $log }}</a></td>
                     <td>{{ $key }}</td>
                 </tr>
             {{ end }}
