@@ -29,7 +29,7 @@
     <form method="POST" action="/httpVersions/" id="parseZgrabForm">
         <div class="form-group">
             <label for="location">Pfad zu zgrab output</label>
-            <input type="search" class="form-control" list="location" name="location" autocomplete="on"/>
+            <input type="search" class="form-control" list="location" name="location" autocomplete="off"/>
             <datalist id="location">
                 {{ range .Banners }}
                 <option value="{{.}}">
