@@ -10,6 +10,7 @@ import (
 	"github.com/agraphie/zversion/util"
 	"strings"
 	"strconv"
+	"log"
 )
 const HTTP_SCAN_OUTPUTH_PATH = "http/"
 const HTTP_SCAN_DEFAULT_PORT = "80"
@@ -94,10 +95,11 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 
 	c1StdErr.Close()
 	c3StdOut.Close()
-
+	finished := time.Now()
 	if runningScan != nil {
-		runningScan.Finished = time.Now()
+		runningScan.Finished = finished
 	}
+	log.Printf("Http scan done in: %d ns\n", time.Since(started))
 }
 
 func printAndLog(reader io.ReadCloser, logWriter io.Writer){
