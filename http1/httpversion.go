@@ -39,6 +39,7 @@ type HttpVersionResult struct {
 	Finished time.Time
 	CompleteResult map[string][]Entry
 	ResultAmount   map[string]int
+	ProcessedZgrabOutput string
 }
 
 var hosts = struct {
@@ -62,6 +63,8 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.Finished = time.Now()
 
 	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, OUTPUT_FILE_NAME, httpVersionResult)
+	httpVersionResult.ProcessedZgrabOutput = path
+
 	return httpVersionResult
 }
 
