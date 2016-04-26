@@ -6,7 +6,6 @@ const TIMESTAMP_FORMAT = "2006-01-02-15:04:00"
 const ANALYSIS_OUTPUT_BASE_PATH = "analysisResults/"
 const HTTP_ANALYSIS_OUTPUTH_PATH = "http/"
 const SCAN_OUTPUT_BASE_PATH = "scanResults/"
-const HTTP_SCAN_OUTPUTH_PATH = "http/"
 
 func CheckPathExist(path string) bool{
 	_, err := os.Stat(path)
