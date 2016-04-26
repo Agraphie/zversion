@@ -1,4 +1,4 @@
-package http1
+package controller
 
 import (
 	"strings"
@@ -8,23 +8,23 @@ import (
 	"fmt"
 	"os"
 	"net/http"
-	"html/template"
 	"github.com/agraphie/zversion/util"
 	"time"
+	"github.com/agraphie/zversion/http1"
 )
 
 const MAPPING = "/httpVersions/"
 const SCAN_MAPPING = "/httpVersions/scan"
-var runningScans map[string]*RunningHttpScan
+var runningScans map[string]*http1.RunningHttpScan
 
 func init(){
-	runningScans = make(map[string]*RunningHttpScan)
-	if !util.CheckPathExist(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH) {
-		err := os.MkdirAll(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH, FILE_ACCESS_PERMISSION)
+	runningScans = make(map[string]*http1.RunningHttpScan)
+	if !util.CheckPathExist(util.SCAN_OUTPUT_BASE_PATH + http1.HTTP_SCAN_OUTPUTH_PATH) {
+		err := os.MkdirAll(util.SCAN_OUTPUT_BASE_PATH + http1.HTTP_SCAN_OUTPUTH_PATH, http1.FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
 	if !util.CheckPathExist(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH) {
-		err := os.MkdirAll(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, FILE_ACCESS_PERMISSION)
+		err := os.MkdirAll(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, http1.FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
 }
@@ -32,12 +32,12 @@ func init(){
 type httpVersionVars struct {
 	Logs    []string
 	Banners []string
-	RunningScans []*RunningHttpScan
+	RunningScans []*http1.RunningHttpScan
 }
 
 type httpLogVars struct {
 	Title   string
-	Results HttpVersionResult
+	Results http1.HttpVersionResult
 }
 
 func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
@@ -49,11 +49,11 @@ func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var jsonResult HttpVersionResult
+	var jsonResult http1.HttpVersionResult
 	json.Unmarshal(file, &jsonResult)
 
 	httpLogVars := httpLogVars{fileName, jsonResult}
-	t, _ := template.ParseFiles("templates/http_log.html")
+	t := render(w, "http_log")
 	t.Execute(w, httpLogVars)
 }
 
@@ -70,15 +70,15 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 		fileLocation := r.FormValue("location")
 		fmt.Println("checking: " + fileLocation)
 
-		_, err := os.Stat(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH + fileLocation + ".json")
+		_, err := os.Stat(util.SCAN_OUTPUT_BASE_PATH + http1.HTTP_SCAN_OUTPUTH_PATH + fileLocation + ".json")
 		_, errWholePath := os.Stat(fileLocation)
 
 		if err == nil {
-			ParseHttpFile(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH + fileLocation + ".json")
+			http1.ParseHttpFile(util.SCAN_OUTPUT_BASE_PATH + http1.HTTP_SCAN_OUTPUTH_PATH + fileLocation + ".json")
 			http.Redirect(w, r, MAPPING, http.StatusFound)
 			return
 		} else if errWholePath == nil {
-			ParseHttpFile(fileLocation)
+			http1.ParseHttpFile(fileLocation)
 			http.Redirect(w, r, MAPPING, http.StatusFound)
 			return
 		} else {
@@ -88,15 +88,15 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		httpVersionVars := initialiseHttpVars()
-		t, _ := template.ParseFiles("templates/http_versions.html", "templates/head.html", "templates/footer.html")
+		t := render(w, "http_versions")
 		t.Execute(w, httpVersionVars)
 	}
 }
 
 func initiateNewHttpScan(w http.ResponseWriter, r *http.Request){
-	newScan := RunningHttpScan{started: time.Now(), progressZgrab: 0, progressZmap: 0}
-	runningScans[fmt.Sprint(newScan.started)] = &newScan
-	go LaunchHttpScan(&newScan, util.SCAN_OUTPUT_BASE_PATH, HTTP_SCAN_DEFAULT_PORT, HTTP_SCAN_DEFAULT_SCAN_TARGETS)
+	newScan := http1.RunningHttpScan{Started: time.Now(), ProgressZgrab: 0, ProgressZmap: 0}
+	runningScans[fmt.Sprint(newScan.Started)] = &newScan
+	go http1.LaunchHttpScan(&newScan, util.SCAN_OUTPUT_BASE_PATH, http1.HTTP_SCAN_DEFAULT_PORT, http1.HTTP_SCAN_DEFAULT_SCAN_TARGETS)
 
 	http.Redirect(w, r, MAPPING, http.StatusFound)
 }
@@ -107,11 +107,11 @@ func initialiseHttpVars() httpVersionVars {
 	bannerLogs := getBannerLogs()
 	scans := getRunningScans()
 
-	return httpVersionVars{analysisLogs, bannerLogs, scans}
+	return httpVersionVars{Logs:analysisLogs, Banners:bannerLogs, RunningScans:scans}
 }
 
-func getRunningScans() []*RunningHttpScan{
-	scans := make([]*RunningHttpScan, len(runningScans))
+func getRunningScans() []*http1.RunningHttpScan{
+	scans := make([]*http1.RunningHttpScan, len(runningScans))
 	for _, value  := range runningScans{
 		scans = append(scans, value)
 	}
@@ -134,7 +134,7 @@ func getAnalysisLogs() []string{
 }
 
 func getBannerLogs() []string{
-	bannerDirectories, err := ioutil.ReadDir(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH)
+	bannerDirectories, err := ioutil.ReadDir(util.SCAN_OUTPUT_BASE_PATH + http1.HTTP_SCAN_OUTPUTH_PATH)
 
 	if (err != nil) {
 		panic(err)
@@ -142,7 +142,7 @@ func getBannerLogs() []string{
 	var banners []string
 
 	for _, d := range bannerDirectories {
-		files, _ := ioutil.ReadDir(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH + d.Name())
+		files, _ := ioutil.ReadDir(util.SCAN_OUTPUT_BASE_PATH + http1.HTTP_SCAN_OUTPUTH_PATH + d.Name())
 
 		for _, f := range files{
 			fileName := strings.Split(f.Name(), ".")[0]

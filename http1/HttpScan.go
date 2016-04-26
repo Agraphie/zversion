@@ -17,11 +17,11 @@ const HTTP_SCAN_DEFAULT_SCAN_TARGETS = "10000"
 const HTTP_SCAN_DEFAULT_PPS = "100000"
 
 type RunningHttpScan struct{
-	runningCommands []*exec.Cmd
-	progressZmap float64
-	progressZgrab float32
-	started time.Time
-	finished time.Time
+	RunningCommands []*exec.Cmd
+	ProgressZmap    float64
+	ProgressZgrab   float32
+	Started         time.Time
+	Finished        time.Time
 }
 
 /**
@@ -59,11 +59,11 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	c2 := exec.Command("ztee", currentScanPath+nmapOutputFileName)
 	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head", "--output-file="+ currentScanPath+zgrabOutputFileName)
 	if runningScan != nil{
-		runningScan.runningCommands = append(runningScan.runningCommands, c1)
-		runningScan.runningCommands = append(runningScan.runningCommands, c2)
-		runningScan.runningCommands = append(runningScan.runningCommands, c3)
-		if runningScan.started.IsZero() {
-			runningScan.started = started
+		runningScan.RunningCommands = append(runningScan.RunningCommands, c1)
+		runningScan.RunningCommands = append(runningScan.RunningCommands, c2)
+		runningScan.RunningCommands = append(runningScan.RunningCommands, c3)
+		if runningScan.Started.IsZero() {
+			runningScan.Started = started
 		}
 	}
 
@@ -96,7 +96,7 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	c3StdOut.Close()
 
 	if runningScan != nil {
-		runningScan.finished = time.Now()
+		runningScan.Finished = time.Now()
 	}
 }
 
@@ -128,7 +128,7 @@ func progressZgrab(zmapStdOut io.ReadCloser, zgrabStdOut io.ReadCloser, runningS
 	for zgrabScanner.Scan(){
 		zgrabLinesProcessed++
 
-		runningScan.progressZgrab = zgrabLinesProcessed / zmapLinesProcessed * 100
+		runningScan.ProgressZgrab = zgrabLinesProcessed / zmapLinesProcessed * 100
 		fmt.Println(zgrabScanner.Text())
 
 	}
@@ -142,6 +142,6 @@ func progressAndLogZmap(reader io.ReadCloser, logWriter io.Writer, runningScan *
 		logWriter.Write([]byte("\n"))
 		progress := strings.Fields(in.Text())[2]
 		progressNoPercent := strings.Split(progress, "%")[0]
-		runningScan.progressZmap, _ = strconv.ParseFloat(progressNoPercent, 64)
+		runningScan.ProgressZmap, _ = strconv.ParseFloat(progressNoPercent, 64)
 	}
 }

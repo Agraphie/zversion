@@ -3,28 +3,41 @@
 {{template "header"}}
 
 <body>
-{{ range .Logs }}
-<li><a href="/httpVersions/{{ . }}">{{ . }}</a></li>
-{{ end }}
+<div class="container-fluid">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Analysis Log</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ range .Logs }}
+        <tr>
+            <td><a href="/httpVersions/{{ . }}">{{ . }}</a></td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
 
-<form method="POST" action="/httpVersions/">
-    <div class="form-group">
-        <label for="location">Pfad zu zgrab output</label>
-        <input type="search" class="form-control" list="location" name="location"/>
-        <datalist id="location">
-            {{ range .Banners }}
-            <option value="{{.}}">
-                {{ end }}
-        </datalist>
-    </div>
-    <input type="submit" value="Abschicken!"/>
-</form>
 
+    <form method="POST" action="/httpVersions/">
+        <div class="form-group">
+            <label for="location">Pfad zu zgrab output</label>
+            <input type="search" class="form-control" list="location" name="location"/>
+            <datalist id="location">
+                {{ range .Banners }}
+                <option value="{{.}}">
+                    {{ end }}
+            </datalist>
+        </div>
+        <button type="submit" class="btn btn-primary">Analysieren!</button>
+    </form>
 
-<form role="form" method="POST" action="/httpVersions/scan">
-    <button type="submit" class="btn btn-default">Neuen Scan starten!</button>
-</form>
-
+    <br/>
+    <form role="form" method="POST" action="/httpVersions/scan">
+        <button type="submit" class="btn btn-primary">Neuen Scan starten!</button>
+    </form>
+</div>
 </body>
 
 </html>

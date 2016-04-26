@@ -2,14 +2,14 @@ package main
 
 import (
 	"net/http"
-	"html/template"
 	"os"
 	"path/filepath"
-	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/controller"
 )
 
 
 var templatesPath = "templates"
+
 
 func init() {
 	dir, _ := os.Getwd() // gives us the source path if we haven't installed.
@@ -17,19 +17,14 @@ func init() {
 }
 
 func main() {
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.HandleFunc(controller.STATIC_URL, controller.StaticHandler)
 
-	http.HandleFunc("/", indexViewHandler)
-	http.HandleFunc("/httpVersions/", http1.ParseHttpViewHandler)
+	http.HandleFunc("/", controller.IndexViewHandler)
+	http.HandleFunc("/httpVersions/", controller.ParseHttpViewHandler)
 	//http.HandleFunc("/httpVersions/.*", httpLogViewHandler)
 
 	http.ListenAndServe(":4000", nil)
 }
 
 
-
-func indexViewHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("templates/index.html")
-	t.Execute(w, nil)
-}
 
