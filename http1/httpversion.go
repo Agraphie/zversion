@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 	"github.com/agraphie/zversion/util"
+	"log"
 )
 
 const NO_AGENT = "Not set"
@@ -42,10 +43,10 @@ type HttpVersionResult struct {
 	ProcessedZgrabOutput string
 }
 
-var hosts = struct {
+type hostsConcurrentSafe struct {
 	sync.RWMutex
 	m map[string][]Entry
-}{m: make(map[string][]Entry)}
+}
 
 func (e Entry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Agent: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Agent)
@@ -56,10 +57,10 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
 
-	worker.ParseFile(path, workOnLine)
+	hosts := parseFile(path)
 
 	httpVersionResult.CompleteResult = hosts.m
-	httpVersionResult.ResultAmount = sumUpResult()
+	httpVersionResult.ResultAmount = sumUpResult(hosts)
 	httpVersionResult.Finished = time.Now()
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
@@ -69,7 +70,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	return httpVersionResult
 }
 
-func sumUpResult() map[string]int {
+func sumUpResult(hosts hostsConcurrentSafe) map[string]int {
 	summedUp := make(map[string]int)
 	for key, _ := range hosts.m {
 		for range hosts.m[key] {
@@ -88,7 +89,86 @@ func removeSpaces(str string) string {
 	}, str)
 }
 
-func workOnLine(queue chan string) {
+
+
+func addToMap(key string, entry Entry, hosts *hostsConcurrentSafe) {
+	hosts.Lock()
+	hosts.m[key] = append(hosts.m[key], entry)
+	hosts.Unlock()
+}
+
+func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
+	if !util.CheckPathExist(path) {
+		err := os.MkdirAll(path, FILE_ACCESS_PERMISSION)
+		util.Check(err)
+	}
+
+	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
+	f, err := os.Create(path + filename + "_" + timestamp + OUTPUT_FILE_ENDING)
+	util.Check(err)
+	defer f.Close()
+
+	j, jerr := json.MarshalIndent(httpVersionResult, "", "  ")
+	if jerr != nil {
+		fmt.Println("jerr:", jerr.Error())
+	}
+
+	w := bufio.NewWriter(f)
+	w.Write(j)
+	w.Flush()
+}
+
+
+type BaseEntry struct {
+	IP        string
+	Timestamp time.Time
+	Error     string
+}
+
+var concurrency = 100
+
+func parseFile(inputPath string) hostsConcurrentSafe{
+	var hosts = hostsConcurrentSafe{m: make(map[string][]Entry)}
+	// This channel has no buffer, so it only accepts input when something is ready
+	// to take it out. This keeps the reading from getting ahead of the writers.
+	workQueue := make(chan string)
+
+	// We need to know when everyone is done so we can exit.
+	complete := make(chan bool)
+
+	// Read the lines into the work queue.
+	go func() {
+		file, err := os.Open(inputPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Close when the functin returns
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			workQueue <- scanner.Text()
+		}
+
+		// Close the channel so everyone reading from it knows we're done.
+		close(workQueue)
+	}()
+
+	// Now read them all off, concurrently.
+	for i := 0; i < concurrency; i++ {
+		go workOnLine(workQueue, complete, &hosts)
+	}
+
+	// Wait for everyone to finish.
+	for i := 0; i < concurrency; i++ {
+		<-complete
+	}
+	return hosts
+}
+
+func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe) {
 	for line := range queue {
 		u := Entry{}
 		json.Unmarshal([]byte(line), &u)
@@ -120,35 +200,7 @@ func workOnLine(queue chan string) {
 		default:
 			key = ERROR_KEY
 		}
-		addToMap(key, u)
+		addToMap(key, u, hosts)
 	}
+	complete <- true
 }
-
-func addToMap(key string, entry Entry) {
-	hosts.Lock()
-	hosts.m[key] = append(hosts.m[key], entry)
-	hosts.Unlock()
-}
-
-func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
-	if !util.CheckPathExist(path) {
-		err := os.MkdirAll(path, FILE_ACCESS_PERMISSION)
-		util.Check(err)
-	}
-
-	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
-	f, err := os.Create(path + filename + "_" + timestamp + OUTPUT_FILE_ENDING)
-	util.Check(err)
-	defer f.Close()
-
-	j, jerr := json.MarshalIndent(httpVersionResult, "", "  ")
-	if jerr != nil {
-		fmt.Println("jerr:", jerr.Error())
-	}
-
-	w := bufio.NewWriter(f)
-	w.Write(j)
-	w.Flush()
-}
-
-
