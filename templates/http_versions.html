@@ -8,13 +8,17 @@
         <thead>
         <tr>
             <th>Analysis Log</th>
+            <th>Processed Log</th>
         </tr>
         </thead>
         <tbody>
-        {{ range .Logs }}
-        <tr>
-            <td><a href="/httpVersions/{{ . }}">{{ . }}</a></td>
-        </tr>
+        {{ range $key, $value := .Logs }}
+            {{ range $meh, $log := $value }}
+                <tr>
+                    <td><a href="/httpVersions/{{ $log }}">{{ $log }}</a></td>
+                    <td>{{ $key }}</td>
+                </tr>
+            {{ end }}
         {{ end }}
         </tbody>
     </table>

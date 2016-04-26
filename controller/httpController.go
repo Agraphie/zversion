@@ -30,7 +30,7 @@ func init(){
 }
 
 type httpVersionVars struct {
-	Logs    []string
+	Logs    map[string][]string
 	Banners []string
 	RunningScans []*http1.RunningHttpScan
 }
@@ -119,15 +119,20 @@ func getRunningScans() []*http1.RunningHttpScan{
 	return scans
 }
 
-func getAnalysisLogs() []string{
-	files, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH)
+func getAnalysisLogs() map[string][]string{
+	directories, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH)
 	if (err != nil) {
 		panic(err)
 	}
-	var logs []string
-	for _, f := range files {
-		fileName := strings.Split(f.Name(), ".")[0]
-		logs = append(logs, fileName)
+	logs := make(map[string][]string)
+	for _, d := range directories {
+		files, err := ioutil.ReadDir(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH + d.Name())
+		util.Check(err)
+
+		for _, f := range files {
+			fileName := strings.Split(f.Name(), ".")[0]
+			logs[d.Name()] = append(logs[d.Name()], fileName)
+		}
 	}
 
 	return logs

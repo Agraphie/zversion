@@ -61,8 +61,9 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.CompleteResult = hosts.m
 	httpVersionResult.ResultAmount = sumUpResult()
 	httpVersionResult.Finished = time.Now()
-
-	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, OUTPUT_FILE_NAME, httpVersionResult)
+	inputFileNameSplit := strings.Split(path, "/")
+	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
+	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH + inputFileName + "/", OUTPUT_FILE_NAME, httpVersionResult)
 	httpVersionResult.ProcessedZgrabOutput = path
 
 	return httpVersionResult
@@ -130,8 +131,8 @@ func addToMap(key string, entry Entry) {
 }
 
 func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
-	if !util.CheckPathExist(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH) {
-		err := os.MkdirAll(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH, FILE_ACCESS_PERMISSION)
+	if !util.CheckPathExist(path) {
+		err := os.MkdirAll(path, FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
 
