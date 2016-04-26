@@ -17,7 +17,7 @@ func init() {
 }
 
 func main() {
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./html/static"))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	http.HandleFunc("/", indexViewHandler)
 	http.HandleFunc("/httpVersions/", http1.ParseHttpViewHandler)
@@ -29,7 +29,7 @@ func main() {
 
 
 func indexViewHandler(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("html/index.html")
+	t, _ := template.ParseFiles("templates/index.html")
 	t.Execute(w, nil)
 }
 

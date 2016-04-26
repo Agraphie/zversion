@@ -53,7 +53,7 @@ func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(file, &jsonResult)
 
 	httpLogVars := httpLogVars{fileName, jsonResult}
-	t, _ := template.ParseFiles("http1/html/http_log.html")
+	t, _ := template.ParseFiles("templates/http_log.html")
 	t.Execute(w, httpLogVars)
 }
 
@@ -88,7 +88,7 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		httpVersionVars := initialiseHttpVars()
-		t, _ := template.ParseFiles("http1/html/http_versions.html")
+		t, _ := template.ParseFiles("templates/http_versions.html", "templates/head.html", "templates/footer.html")
 		t.Execute(w, httpVersionVars)
 	}
 }

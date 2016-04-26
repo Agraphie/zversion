@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "header"}}
+
+<body>
+{{ range .Logs }}
+<li><a href="/httpVersions/{{ . }}">{{ . }}</a></li>
+{{ end }}
+
+<form method="POST" action="/httpVersions/">
+    <div class="form-group">
+        <label for="location">Pfad zu zgrab output</label>
+        <input type="search" class="form-control" list="location" name="location"/>
+        <datalist id="location">
+            {{ range .Banners }}
+            <option value="{{.}}">
+                {{ end }}
+        </datalist>
+    </div>
+    <input type="submit" value="Abschicken!"/>
+</form>
+
+
+<form role="form" method="POST" action="/httpVersions/scan">
+    <button type="submit" class="btn btn-default">Neuen Scan starten!</button>
+</form>
+
+</body>
+
+</html>
