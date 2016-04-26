@@ -16,22 +16,21 @@ import (
 )
 
 var (
-	strFlag = flag.String("long-string", "", "Description")
 	portFlag = flag.String("port", "80", "The port to scan")
 	scanTargets = flag.String("targets", "10000", "How many targets should be scanned, absolute or percentage value")
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
+	httpScan = flag.Bool("http-scan", false, "Wether a HTTP scan should be launched")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
 
 func init(){
-	flag.StringVar(strFlag, "s", "", "Description")
 	flag.StringVar(portFlag, "p", "80", "The port to scan")
 	flag.StringVar(scanTargets, "n", "10000", "The port to scan")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
-
+	flag.BoolVar(httpScan, "hs", false, "Wether a HTTP scan should be launched")
 
 	flag.Parse()
 
@@ -41,9 +40,10 @@ func init(){
 	}
 }
 func main() {
-	//execCommandWithCancel("sleep 5")
-	//sudo zmap -p 80 -n 10 --output-fields=* | ztee results.csv | zgrab --port 80 --data=./http-req-head --output-file=/home/agraphie/banners5.json --telnet
-	LaunchHttpScan()
+	if(*httpScan){
+		fmt.Println("Launching HTTP scan...")
+		LaunchHttpScan()
+	}
 
 }
 
@@ -62,8 +62,8 @@ func LaunchHttpScan(){
 	zmapErrorLog := "zmap_error_" + timestamp
 	zgrabErrorLog := "zgrab_error_" + timestamp
 
-	zmapErr, _ := os.Create(currentScanPath+zmapErrorLog)
-	zgrabErr, _ := os.Create(currentScanPath+zgrabErrorLog)
+	zmapErr, _ := os.Create(currentScanPath + zmapErrorLog)
+	zgrabErr, _ := os.Create(currentScanPath + zgrabErrorLog)
 
 
 	defer zmapErr.Close()
@@ -72,7 +72,7 @@ func LaunchHttpScan(){
 	zmapErrW := bufio.NewWriter(zmapErr)
 	zgrabErrW := bufio.NewWriter(zgrabErr)
 
-	c1 := exec.Command("sudo", "zmap", "-p", *portFlag, "-n", *scanTargets)
+	c1 := exec.Command("sudo", "zmap", "-p", *portFlag, "-n", *scanTargets, "-r 100000")
 	c2 := exec.Command("ztee", currentScanPath+nmapOutputFileName)
 	c3 := exec.Command("zgrab", "--port", *portFlag, "--data=./http-req-head", "--output-file="+ currentScanPath+zgrabOutputFileName)
 	c1.Stderr = zmapErrW
