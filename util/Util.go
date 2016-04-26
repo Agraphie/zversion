@@ -1,7 +1,7 @@
 package util
 
 import "os"
-const TIMESTAMP_FORMAT = "2006-01-02-15:04:00"
+const TIMESTAMP_FORMAT = "2006-01-02-15:04:05"
 
 const ANALYSIS_OUTPUT_BASE_PATH = "analysisResults/"
 const HTTP_ANALYSIS_OUTPUTH_PATH = "http/"
