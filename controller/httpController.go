@@ -11,6 +11,7 @@ import (
 	"github.com/agraphie/zversion/util"
 	"time"
 	"github.com/agraphie/zversion/http1"
+	"log"
 )
 
 const MAPPING = "/httpVersions/"
@@ -84,8 +85,8 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, MAPPING, http.StatusFound)
 			return
 		} else {
-			http.Redirect(w, r, MAPPING, http.StatusNotFound)
-			panic(err)
+			log.Println("Path: " + fileLocation + " not found")
+			http.NotFound(w, r)
 			return
 		}
 	} else {
