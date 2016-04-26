@@ -26,7 +26,7 @@ func IndexViewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func render(w http.ResponseWriter, tmpl string) *template.Template  {
-	tmpl_list := []string{fmt.Sprintf("templates/%s.html", tmpl), "templates/header.html", "templates/footer.html"}
+	tmpl_list := []string{fmt.Sprintf("templates/%s.html", tmpl), "templates/header.html", "templates/footer.html", "templates/navbar.html"}
 	t, err := template.ParseFiles(tmpl_list...)
 	if err != nil {
 		log.Print("template parsing error: ", err)
