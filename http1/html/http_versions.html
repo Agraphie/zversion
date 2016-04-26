@@ -10,14 +10,18 @@
 {{ end }}
 
 <form method="POST" action="/httpVersions/">
+    <label for="location">Pfad zu zgrab output</label>
     <input type="search" list="location" name="location"/>
-    <label for="location">Dateipfad</label>
     <datalist id="location">
         {{ range .Banners }}
         <option value="{{.}}">
             {{ end }}
     </datalist>
     <input type="submit" value="Abschicken!"/>
+</form>
+
+<form method="POST" action="/httpVersions/scan">
+    <input type="submit" value="Neuen Scan starten!"/>
 </form>
 </body>
 </html>

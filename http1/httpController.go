@@ -10,12 +10,15 @@ import (
 	"net/http"
 	"html/template"
 	"github.com/agraphie/zversion/util"
+	"time"
 )
 
 const MAPPING = "/httpVersions/"
 const SCAN_MAPPING = "/httpVersions/scan"
+var runningScans map[string]*RunningHttpScan
 
 func init(){
+	runningScans = make(map[string]*RunningHttpScan)
 	if !util.CheckPathExist(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH) {
 		err := os.MkdirAll(util.SCAN_OUTPUT_BASE_PATH + HTTP_SCAN_OUTPUTH_PATH, FILE_ACCESS_PERMISSION)
 		util.Check(err)
@@ -29,6 +32,7 @@ func init(){
 type httpVersionVars struct {
 	Logs    []string
 	Banners []string
+	RunningScans []*RunningHttpScan
 }
 
 type httpLogVars struct {
@@ -60,7 +64,8 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" && match {
 		httpLogViewHandler(w, r)
 	} else if r.Method == "POST" && match_scan {
-		LaunchHttpScan(nil, HTTP_SCAN_OUTPUTH_PATH, HTTP_SCAN_DEFAULT_PORT, HTTP_SCAN_DEFAULT_SCAN_TARGETS)
+		initiateNewHttpScan(w, r)
+		return
 	} else if r.Method == "POST" {
 		fileLocation := r.FormValue("location")
 		fmt.Println("checking: " + fileLocation)
@@ -88,13 +93,30 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func initiateNewHttpScan(w http.ResponseWriter, r *http.Request){
+	newScan := RunningHttpScan{started: time.Now(), progressZgrab: 0, progressZmap: 0}
+	runningScans[fmt.Sprint(newScan.started)] = &newScan
+	go LaunchHttpScan(&newScan, util.SCAN_OUTPUT_BASE_PATH, HTTP_SCAN_DEFAULT_PORT, HTTP_SCAN_DEFAULT_SCAN_TARGETS)
+
+	http.Redirect(w, r, MAPPING, http.StatusFound)
+}
+
 func initialiseHttpVars() httpVersionVars {
 
 	analysisLogs := getAnalysisLogs()
 	bannerLogs := getBannerLogs()
+	scans := getRunningScans()
 
+	return httpVersionVars{analysisLogs, bannerLogs, scans}
+}
 
-	return httpVersionVars{analysisLogs, bannerLogs}
+func getRunningScans() []*RunningHttpScan{
+	scans := make([]*RunningHttpScan, len(runningScans))
+	for _, value  := range runningScans{
+		scans = append(scans, value)
+	}
+
+	return scans
 }
 
 func getAnalysisLogs() []string{
