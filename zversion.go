@@ -18,20 +18,20 @@ import (
 
 var (
 	portFlag = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
-	scanTargets = flag.String("targets", "10000", "How many targets should be scanned, absolute or percentage value")
+	scanTargets = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
-	isHttpScan = flag.Bool("http-scan", false, "Wether a HTTP scan should be launched")
+	isHttpScan = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
 
 func init(){
 	flag.StringVar(portFlag, "p", "80", "The port to scan")
-	flag.StringVar(scanTargets, "n", "10000", "The port to scan")
+	flag.StringVar(scanTargets, "t", "100%", "How many targets should be scanned, absolute or percentage value")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
-	flag.BoolVar(isHttpScan, "hs", false, "Wether a HTTP scan should be launched")
+	flag.BoolVar(isHttpScan, "hs", false, "Whether a HTTP scan should be launched")
 
 	flag.Parse()
 
@@ -44,6 +44,8 @@ func main() {
 	if(*isHttpScan){
 		fmt.Println("Launching HTTP scan...")
 		http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets)
+	} else {
+		fmt.Fprintln(os.Stderr, "No scan specified! E.g. specify the flag `-hs` for a complete HTTP scan")
 	}
 
 }
