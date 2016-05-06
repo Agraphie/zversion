@@ -21,7 +21,11 @@ var (
 	scanTargets = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
+	analysisInputPath = flag.String("analysis-input", "", "Path to zgrab json output")
+
 	isHttpScan = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
+	isHttpAnalysis = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
+
 )
 
 const FILE_ACCESS_PERMISSION = 0755
@@ -31,7 +35,10 @@ func init(){
 	flag.StringVar(scanTargets, "t", "100%", "How many targets should be scanned, absolute or percentage value")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
+	flag.StringVar(analysisInputPath, "ai", "", "Path to zgrab json output")
+
 	flag.BoolVar(isHttpScan, "hs", false, "Whether a HTTP scan should be launched")
+	flag.BoolVar(isHttpAnalysis, "ha", false, "Whether a HTTP analysis should be launched")
 
 	flag.Parse()
 
@@ -41,11 +48,19 @@ func init(){
 	}
 }
 func main() {
-	if(*isHttpScan){
+	if *isHttpScan {
 		fmt.Println("Launching HTTP scan...")
 		http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets)
-	} else {
-		fmt.Fprintln(os.Stderr, "No scan specified! E.g. specify the flag `-hs` for a complete HTTP scan")
+	} else if *isHttpAnalysis {
+		fmt.Fprintln(os.Stderr, *analysisInputPath)
+
+		if util.CheckPathExist(*analysisInputPath) {
+			http1.ParseHttpFile(*analysisInputPath)
+		} else {
+			fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
+		}
+	}else {
+		fmt.Fprintln(os.Stderr, "No scan or analysis specified! E.g. specify the flag `-hs` for a complete HTTP scan")
 	}
 
 }
