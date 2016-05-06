@@ -3,7 +3,6 @@ package http1
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/agraphie/zversion/worker"
 	"sync"
 	"strings"
 	"unicode"
@@ -23,14 +22,18 @@ const OUTPUT_FILE_NAME = "http_version"
 const OUTPUT_FILE_ENDING = ".json"
 const FILE_ACCESS_PERMISSION = 0755
 
+type BaseEntry struct {
+	IP        string
+	Timestamp time.Time
+	Error     string
+}
 
 
 type Entry struct {
-	worker.BaseEntry
+	BaseEntry
 	Data  struct {
-			  Read  string
-			  Write string
-		  }
+			  Read  string `json:",omitempty"`
+		  } `json:",omitempty"`
 	Agent string
 	Error string
 }
@@ -119,11 +122,6 @@ func writeMapToFile(path string, filename string, httpVersionResult HttpVersionR
 }
 
 
-type BaseEntry struct {
-	IP        string
-	Timestamp time.Time
-	Error     string
-}
 
 var concurrency = 100
 
@@ -200,6 +198,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 		default:
 			key = ERROR_KEY
 		}
+		u.Data.Read = ""
 		addToMap(key, u, hosts)
 	}
 	complete <- true
