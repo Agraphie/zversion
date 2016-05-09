@@ -22,7 +22,7 @@ var (
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
 	analysisInputPath = flag.String("analysis-input", "", "Path to zgrab json output")
-
+	blacklistPath = flag.String("blacklist-file", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
 	isHttpScan = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
 	isHttpAnalysis = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
 
@@ -36,6 +36,7 @@ func init(){
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
 	flag.StringVar(analysisInputPath, "ai", "", "Path to zgrab json output")
+	flag.StringVar(blacklistPath, "bf", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
 
 	flag.BoolVar(isHttpScan, "hs", false, "Whether a HTTP scan should be launched")
 	flag.BoolVar(isHttpAnalysis, "ha", false, "Whether a HTTP analysis should be launched")
@@ -49,8 +50,16 @@ func init(){
 }
 func main() {
 	if *isHttpScan {
-		fmt.Println("Launching HTTP scan...")
-		http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets)
+		if *blacklistPath != "" {
+			if *blacklistPath != "null" && !util.CheckPathExist(*blacklistPath) {
+				fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
+			} else {
+				fmt.Println("Launching HTTP scan...")
+				http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets, *blacklistPath)
+			}
+		} else {
+			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
+		}
 	} else if *isHttpAnalysis {
 		fmt.Fprintln(os.Stderr, *analysisInputPath)
 

@@ -29,7 +29,7 @@ type RunningHttpScan struct{
 commands is a map where the key is the timestamp when the scan was launched and the values are all cmds which are
 running for that timestamp. This makes it easier to kill them off.
  */
-func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string){
+func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string, blacklistFile string){
 	started := time.Now()
 	timestampFormatted := started.Format(util.TIMESTAMP_FORMAT)
 
@@ -56,7 +56,13 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	defer zmapErrW.Flush()
 	defer zgrabErrW.Flush()
 
-	c1 := exec.Command("sudo", "zmap", "-p", port, "-n", scanTargets, "-r", HTTP_SCAN_DEFAULT_PPS)
+	var c1 *exec.Cmd
+	if(blacklistFile == "null"){
+		c1 = exec.Command("sudo", "zmap", "-p", port, "-n", scanTargets, "-r", HTTP_SCAN_DEFAULT_PPS)
+	}else{
+		c1 = exec.Command("sudo", "zmap", "-p", port, "-n", scanTargets, "-r", HTTP_SCAN_DEFAULT_PPS, "-b", blacklistFile)
+	}
+
 	c2 := exec.Command("ztee", currentScanPath+nmapOutputFileName)
 	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head", "--output-file="+ currentScanPath+zgrabOutputFileName)
 	if runningScan != nil{
