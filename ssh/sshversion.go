@@ -77,8 +77,9 @@ func ParseSSHFile(path string) SSHVersionResult {
 	sshVersionResult.Finished = time.Now()
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, sshVersionResult)
 	sshVersionResult.ProcessedZgrabOutput = path
+
+	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, sshVersionResult)
 
 	return sshVersionResult
 }
@@ -185,7 +186,6 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 		key := sshEntry.Software_version
 
 		addToMap(key, sshEntry, hosts)
-		inputEntry = nil
 	}
 	complete <- true
 }

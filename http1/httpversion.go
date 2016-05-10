@@ -66,8 +66,8 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.Finished = time.Now()
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, httpVersionResult)
 	httpVersionResult.ProcessedZgrabOutput = path
+	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, httpVersionResult)
 
 	return httpVersionResult
 }

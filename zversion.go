@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"github.com/agraphie/zversion/ssh"
 )
 
 var (
@@ -24,6 +25,8 @@ var (
 	blacklistPath      = flag.String("blacklist-file", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
 	isHttpScan         = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
 	isHttpAnalysis     = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
+	isSSHAnalysis     = flag.Bool("ssh-analysis", false, "Whether a SSH analysis should be launched")
+
 )
 
 const FILE_ACCESS_PERMISSION = 0755
@@ -38,6 +41,7 @@ func init() {
 
 	flag.BoolVar(isHttpScan, "hs", false, "Whether a HTTP scan should be launched")
 	flag.BoolVar(isHttpAnalysis, "ha", false, "Whether a HTTP analysis should be launched")
+	flag.BoolVar(isSSHAnalysis, "sa", false, "Whether a SSH analysis should be launched")
 
 	flag.Parse()
 
@@ -63,6 +67,14 @@ func main() {
 
 		if util.CheckPathExist(*analysisInputPath) {
 			http1.ParseHttpFile(*analysisInputPath)
+		} else {
+			fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
+		}
+	} else if *isSSHAnalysis {
+		fmt.Fprintln(os.Stderr, *analysisInputPath)
+
+		if util.CheckPathExist(*analysisInputPath) {
+			ssh.ParseSSHFile(*analysisInputPath)
 		} else {
 			fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
 		}
