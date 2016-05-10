@@ -7,10 +7,9 @@ import (
 	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
-	"strings"
 	"sync"
 	"time"
-	"unicode"
+	"strings"
 )
 
 const NO_AGENT = "Not set"
@@ -66,9 +65,11 @@ func (e SSHEntry) String() string {
 }
 
 func ParseSSHFile(path string) SSHVersionResult {
+	fmt.Printf("Started at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+
+	//
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
-
 	hosts := parseFile(path)
 
 	sshVersionResult.CompleteResult = hosts.m
@@ -79,6 +80,7 @@ func ParseSSHFile(path string) SSHVersionResult {
 	sshVersionResult.ProcessedZgrabOutput = path
 
 	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, sshVersionResult)
+	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
 	return sshVersionResult
 }
@@ -94,18 +96,11 @@ func sumUpResult(hosts hostsConcurrentSafe) map[string]int {
 	return summedUp
 }
 
-func removeSpaces(str string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, str)
-}
-
 func addToMap(key string, entry SSHEntry, hosts *hostsConcurrentSafe) {
 	hosts.Lock()
 	hosts.m[key] = append(hosts.m[key], entry)
+	fmt.Printf("Processed so far %d\n", len(hosts.m))
+
 	hosts.Unlock()
 }
 
@@ -130,7 +125,7 @@ func writeMapToFile(path string, filename string, sshVersionResult SSHVersionRes
 	w.Flush()
 }
 
-var concurrency = 100
+var concurrency = 50
 
 func parseFile(inputPath string) hostsConcurrentSafe {
 	var hosts = hostsConcurrentSafe{m: make(map[string][]SSHEntry)}
@@ -161,6 +156,7 @@ func parseFile(inputPath string) hostsConcurrentSafe {
 		close(workQueue)
 	}()
 
+
 	// Now read them all off, concurrently.
 	for i := 0; i < concurrency; i++ {
 		go workOnLine(workQueue, complete, &hosts)
@@ -172,6 +168,16 @@ func parseFile(inputPath string) hostsConcurrentSafe {
 	}
 	return hosts
 }
+
+//func progressLogging(complete chan bool, hosts *hostsConcurrentSafe, filepath string){
+//
+//	// Wait for everyone to finish.
+//	for i := 0; i < concurrency; i++ {
+//		for <- complete {
+//			fmt.Println("Processed %d lines and %d% in total\n", len(hosts), )
+//		}
+//	}
+//}
 
 func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe) {
 	for line := range queue {
