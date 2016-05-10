@@ -2,15 +2,15 @@ package controller
 
 import (
 	"fmt"
-	"log"
-	"io"
-	"time"
-	"net/http"
 	"html/template"
+	"io"
+	"log"
+	"net/http"
+	"time"
 )
+
 const STATIC_URL string = "/static/"
 const STATIC_ROOT string = "static/"
-
 
 type Context struct {
 	Title  string
@@ -25,7 +25,7 @@ func IndexViewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func render(w http.ResponseWriter, tmpl string) *template.Template  {
+func render(w http.ResponseWriter, tmpl string) *template.Template {
 	tmpl_list := []string{fmt.Sprintf("templates/%s.html", tmpl), "templates/header.html", "templates/footer.html", "templates/navbar.html"}
 	t, err := template.ParseFiles(tmpl_list...)
 	if err != nil {
@@ -33,7 +33,6 @@ func render(w http.ResponseWriter, tmpl string) *template.Template  {
 	}
 	return t
 }
-
 
 func StaticHandler(w http.ResponseWriter, req *http.Request) {
 	static_file := req.URL.Path[len(STATIC_URL):]

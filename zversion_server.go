@@ -1,15 +1,13 @@
 package main
 
 import (
+	"github.com/agraphie/zversion/controller"
 	"net/http"
 	"os"
 	"path/filepath"
-	"github.com/agraphie/zversion/controller"
 )
 
-
 var templatesPath = "templates"
-
 
 func init() {
 	dir, _ := os.Getwd() // gives us the source path if we haven't installed.
@@ -25,6 +23,3 @@ func main() {
 
 	http.ListenAndServe(":4000", nil)
 }
-
-
-

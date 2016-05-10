@@ -1,9 +1,9 @@
 package worker
 
 import (
-	"os"
-	"log"
 	"bufio"
+	"log"
+	"os"
 	"time"
 )
 

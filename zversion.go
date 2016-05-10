@@ -1,36 +1,34 @@
 package main
 
 import (
-	"flag"
-	"os/exec"
-	"log"
-	"strings"
-	"fmt"
 	"bufio"
-	"os"
-	"os/signal"
-	"syscall"
 	"errors"
-	"github.com/agraphie/zversion/util"
+	"flag"
+	"fmt"
 	"github.com/agraphie/zversion/http1"
-
+	"github.com/agraphie/zversion/util"
+	"log"
+	"os"
+	"os/exec"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
 var (
-	portFlag = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
-	scanTargets = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
-	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
+	portFlag           = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
+	scanTargets        = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
+	scanOutputPath     = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
-	analysisInputPath = flag.String("analysis-input", "", "Path to zgrab json output")
-	blacklistPath = flag.String("blacklist-file", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
-	isHttpScan = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
-	isHttpAnalysis = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
-
+	analysisInputPath  = flag.String("analysis-input", "", "Path to zgrab json output")
+	blacklistPath      = flag.String("blacklist-file", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
+	isHttpScan         = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
+	isHttpAnalysis     = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
 
-func init(){
+func init() {
 	flag.StringVar(portFlag, "p", "80", "The port to scan")
 	flag.StringVar(scanTargets, "t", "100%", "How many targets should be scanned, absolute or percentage value")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
@@ -68,25 +66,23 @@ func main() {
 		} else {
 			fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
 		}
-	}else {
+	} else {
 		fmt.Fprintln(os.Stderr, "No scan or analysis specified! E.g. specify the flag `-hs` for a complete HTTP scan")
 	}
 
 }
 
-
-func execCommandWithCancel(command string){
+func execCommandWithCancel(command string) {
 	execCommand := strings.Fields(command)
 	cmd := exec.Command(execCommand[0], execCommand[1:]...)
 	stdout, _ := cmd.StdoutPipe()
-
 
 	done := make(chan error, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	cmd.Start()
 
-	go func(){
+	go func() {
 		sig := <-sigs
 		switch sig {
 		case os.Interrupt:
@@ -99,10 +95,6 @@ func execCommandWithCancel(command string){
 	go func() {
 		done <- cmd.Wait()
 	}()
-
-
-
-
 
 	in := bufio.NewScanner(stdout)
 
@@ -120,5 +112,3 @@ func execCommandWithCancel(command string){
 		}
 	}
 }
-
-

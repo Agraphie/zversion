@@ -1,16 +1,16 @@
 package http1
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"sync"
-	"strings"
-	"unicode"
-	"bufio"
-	"os"
-	"time"
 	"github.com/agraphie/zversion/util"
 	"log"
+	"os"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
 )
 
 const NO_AGENT = "Not set"
@@ -28,21 +28,20 @@ type BaseEntry struct {
 	Error     string
 }
 
-
 type Entry struct {
 	BaseEntry
-	Data  struct {
-			  Read  string `json:",omitempty"`
-		  } `json:",omitempty"`
+	Data struct {
+		Read string `json:",omitempty"`
+	} `json:",omitempty"`
 	Agent string
 	Error string
 }
 
 type HttpVersionResult struct {
-	Started time.Time
-	Finished time.Time
-	CompleteResult map[string][]Entry
-	ResultAmount   map[string]int
+	Started              time.Time
+	Finished             time.Time
+	CompleteResult       map[string][]Entry
+	ResultAmount         map[string]int
 	ProcessedZgrabOutput string
 }
 
@@ -67,7 +66,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.Finished = time.Now()
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH + util.HTTP_ANALYSIS_OUTPUTH_PATH + inputFileName + "/", OUTPUT_FILE_NAME, httpVersionResult)
+	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, httpVersionResult)
 	httpVersionResult.ProcessedZgrabOutput = path
 
 	return httpVersionResult
@@ -91,8 +90,6 @@ func removeSpaces(str string) string {
 		return r
 	}, str)
 }
-
-
 
 func addToMap(key string, entry Entry, hosts *hostsConcurrentSafe) {
 	hosts.Lock()
@@ -121,11 +118,9 @@ func writeMapToFile(path string, filename string, httpVersionResult HttpVersionR
 	w.Flush()
 }
 
-
-
 var concurrency = 100
 
-func parseFile(inputPath string) hostsConcurrentSafe{
+func parseFile(inputPath string) hostsConcurrentSafe {
 	var hosts = hostsConcurrentSafe{m: make(map[string][]Entry)}
 	// This channel has no buffer, so it only accepts input when something is ready
 	// to take it out. This keeps the reading from getting ahead of the writers.
