@@ -66,7 +66,6 @@ func (e SSHEntry) String() string {
 }
 
 func ParseSSHFile(path string) SSHVersionResult {
-	fmt.Println(path)
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
 

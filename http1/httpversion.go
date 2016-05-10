@@ -55,7 +55,6 @@ func (e Entry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
-	fmt.Println(path)
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
 

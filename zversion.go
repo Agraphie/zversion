@@ -63,20 +63,18 @@ func main() {
 			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
 		}
 	} else if *isHttpAnalysis {
-		fmt.Fprintln(os.Stderr, *analysisInputPath)
-
 		if util.CheckPathExist(*analysisInputPath) {
+			fmt.Printf("Processing file: %s\n", *analysisInputPath)
 			http1.ParseHttpFile(*analysisInputPath)
 		} else {
-			fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
+			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
 		}
 	} else if *isSSHAnalysis {
-		fmt.Fprintln(os.Stderr, *analysisInputPath)
-
 		if util.CheckPathExist(*analysisInputPath) {
+			fmt.Printf("Processing file: %s\n", *analysisInputPath)
 			ssh.ParseSSHFile(*analysisInputPath)
 		} else {
-			fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
+			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
 		}
 	} else {
 		fmt.Fprintln(os.Stderr, "No scan or analysis specified! E.g. specify the flag `-hs` for a complete HTTP scan")
