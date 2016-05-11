@@ -16,7 +16,7 @@ import (
 const NO_AGENT = "Not set"
 const NO_AGENT_KEY = "Not set"
 const ERROR_KEY = "Error"
-const SERVER_AGENT_STRING = "Server"
+const SERVER_AGENT_STRING = "Server:"
 const SERVER_AGENT_DELIMITER = ":"
 const OUTPUT_FILE_NAME = "http_version"
 const OUTPUT_FILE_ENDING = ".json"
@@ -66,6 +66,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
 	httpVersionResult.ProcessedZgrabOutput = path
+
 	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, httpVersionResult)
 
 	return httpVersionResult
@@ -174,12 +175,17 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 
 		var key string
 
+		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
+		//was assumed to contain the server version --> fixed to contain "Server:"
 		switch {
 		case dataAvailable && contains:
 			splittedString := strings.Split(u.Data.Read, "\n")
 			for i := range splittedString {
 				if strings.Contains(splittedString[i], SERVER_AGENT_STRING) {
 					serverSplit := strings.Split(splittedString[i], SERVER_AGENT_DELIMITER)
+					if len(serverSplit) < 2{
+						log.Fatal(u.Data.Read)
+					}
 					u.Agent = removeSpaces(serverSplit[1])
 					key = u.Agent
 
