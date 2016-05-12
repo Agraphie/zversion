@@ -7,19 +7,13 @@ import (
 	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
-	"strings"
 )
 
 const NO_AGENT = "Not set"
-const NO_AGENT_KEY = "Not set"
-const ERROR_KEY = "Error"
-const SERVER_AGENT_STRING = "Server"
-const SERVER_AGENT_DELIMITER = ":"
 const OUTPUT_FILE_NAME = "ssh_version"
-const OUTPUT_FILE_ENDING = ".json"
-const FILE_ACCESS_PERMISSION = 0755
 
 type BaseEntry struct {
 	IP        string
@@ -50,14 +44,14 @@ type inputEntry struct {
 type SSHVersionResult struct {
 	Started              time.Time
 	Finished             time.Time
-	CompleteResult       map[string][]SSHEntry
+	CompleteResult       []SSHEntry
 	ResultAmount         map[string]int
 	ProcessedZgrabOutput string
 }
 
 type hostsConcurrentSafe struct {
 	sync.RWMutex
-	m map[string][]SSHEntry
+	m map[string]int
 }
 
 func (e SSHEntry) String() string {
@@ -67,71 +61,39 @@ func (e SSHEntry) String() string {
 func ParseSSHFile(path string) SSHVersionResult {
 	fmt.Printf("Started at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
-	//
-	sshVersionResult := SSHVersionResult{}
-	sshVersionResult.Started = time.Now()
-	hosts := parseFile(path)
-
-	sshVersionResult.CompleteResult = hosts.m
-	sshVersionResult.ResultAmount = sumUpResult(hosts)
-	sshVersionResult.Finished = time.Now()
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	sshVersionResult.ProcessedZgrabOutput = path
+	outputFile := util.CreateOutputJsonFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
 
-	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, sshVersionResult)
+	sshVersionResult := SSHVersionResult{}
+	sshVersionResult.Started = time.Now()
+	hosts := parseFile(path, outputFile)
+
+	sshVersionResult.ResultAmount = hosts.m
+	sshVersionResult.Finished = time.Now()
+
+	sshVersionResult.ProcessedZgrabOutput = path
+	util.WriteSummaryFileAsJson(hosts.m, util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
 	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
 	return sshVersionResult
 }
 
-func sumUpResult(hosts hostsConcurrentSafe) map[string]int {
-	summedUp := make(map[string]int)
-	for key, _ := range hosts.m {
-		for range hosts.m[key] {
-			summedUp[key] = summedUp[key] + 1
-		}
-	}
-
-	return summedUp
-}
-
-func addToMap(key string, entry SSHEntry, hosts *hostsConcurrentSafe) {
+func addToMap(key string, hosts *hostsConcurrentSafe) {
 	hosts.Lock()
-	hosts.m[key] = append(hosts.m[key], entry)
-	fmt.Printf("Processed so far %d\n", len(hosts.m))
-
+	hosts.m["Total"] = hosts.m["Total"] + 1
+	hosts.m[key] = hosts.m[key] + 1
 	hosts.Unlock()
-}
-
-func writeMapToFile(path string, filename string, sshVersionResult SSHVersionResult) {
-	if !util.CheckPathExist(path) {
-		err := os.MkdirAll(path, FILE_ACCESS_PERMISSION)
-		util.Check(err)
-	}
-
-	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
-	f, err := os.Create(path + filename + "_" + timestamp + OUTPUT_FILE_ENDING)
-	util.Check(err)
-	defer f.Close()
-
-	j, jerr := json.MarshalIndent(sshVersionResult, "", "  ")
-	if jerr != nil {
-		fmt.Println("jerr:", jerr.Error())
-	}
-
-	w := bufio.NewWriter(f)
-	w.Write(j)
-	w.Flush()
 }
 
 var concurrency = 50
 
-func parseFile(inputPath string) hostsConcurrentSafe {
-	var hosts = hostsConcurrentSafe{m: make(map[string][]SSHEntry)}
+func parseFile(inputPath string, outputFile *os.File) hostsConcurrentSafe {
+	var hostsResult = hostsConcurrentSafe{m: make(map[string]int)}
 	// This channel has no buffer, so it only accepts input when something is ready
 	// to take it out. This keeps the reading from getting ahead of the writers.
 	workQueue := make(chan string)
+	writeQueue := make(chan []byte)
 
 	// We need to know when everyone is done so we can exit.
 	complete := make(chan bool)
@@ -156,32 +118,30 @@ func parseFile(inputPath string) hostsConcurrentSafe {
 		close(workQueue)
 	}()
 
+	//start writer
+	go util.WriteEntries(complete, writeQueue, outputFile)
 
 	// Now read them all off, concurrently.
 	for i := 0; i < concurrency; i++ {
-		go workOnLine(workQueue, complete, &hosts)
+		go workOnLine(workQueue, complete, &hostsResult, writeQueue)
 	}
 
 	// Wait for everyone to finish.
 	for i := 0; i < concurrency; i++ {
 		<-complete
 	}
-	return hosts
+	close(writeQueue)
+
+	//wait for write queue
+	<-complete
+
+	return hostsResult
 }
 
-//func progressLogging(complete chan bool, hosts *hostsConcurrentSafe, filepath string){
-//
-//	// Wait for everyone to finish.
-//	for i := 0; i < concurrency; i++ {
-//		for <- complete {
-//			fmt.Println("Processed %d lines and %d% in total\n", len(hosts), )
-//		}
-//	}
-//}
+func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe, writeQueue chan []byte) {
+	inputEntry := inputEntry{}
 
-func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe) {
 	for line := range queue {
-		inputEntry := inputEntry{}
 		json.Unmarshal([]byte(line), &inputEntry)
 		sshEntry := transform(inputEntry)
 
@@ -190,7 +150,13 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 		}
 		key := sshEntry.Software_version
 
-		addToMap(key, sshEntry, hosts)
+		addToMap(key, hosts)
+
+		j, jerr := json.MarshalIndent(sshEntry, "", "  ")
+		if jerr != nil {
+			fmt.Println("jerr:", jerr.Error())
+		}
+		writeQueue <- j
 	}
 	complete <- true
 }

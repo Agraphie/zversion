@@ -40,8 +40,8 @@ type Entry struct {
 type HttpVersionResult struct {
 	Started              time.Time
 	Finished             time.Time
-	CompleteResult       map[string][]Entry
 	ResultAmount         map[string]int
+	CompleteResult       map[string][]Entry
 	ProcessedZgrabOutput string
 }
 
@@ -116,6 +116,17 @@ func writeMapToFile(path string, filename string, httpVersionResult HttpVersionR
 	w := bufio.NewWriter(f)
 	w.Write(j)
 	w.Flush()
+
+	f, err = os.Create(path + filename + "_" + timestamp + "_summary" + OUTPUT_FILE_ENDING)
+
+	j, jerr = json.MarshalIndent(httpVersionResult.ResultAmount, "", "  ")
+	if jerr != nil {
+		fmt.Println("jerr:", jerr.Error())
+	}
+
+	w = bufio.NewWriter(f)
+	w.Write(j)
+	w.Flush()
 }
 
 var concurrency = 100
@@ -183,7 +194,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 			for i := range splittedString {
 				if strings.Contains(splittedString[i], SERVER_AGENT_STRING) {
 					serverSplit := strings.Split(splittedString[i], SERVER_AGENT_DELIMITER)
-					if len(serverSplit) < 2{
+					if len(serverSplit) < 2 {
 						log.Fatal(u.Data.Read)
 					}
 					u.Agent = removeSpaces(serverSplit[1])
