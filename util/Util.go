@@ -73,7 +73,7 @@ func WriteEntries(complete chan bool, writeQueue chan []byte, file *os.File) {
 		w.WriteString(",\n")
 	}
 
-	w.WriteString("\n]\n}")
+	w.WriteString("\n]\n}\n")
 
 	w.Flush()
 
