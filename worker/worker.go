@@ -2,8 +2,10 @@ package worker
 
 import (
 	"bufio"
+	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -13,12 +15,17 @@ type BaseEntry struct {
 	Error     string
 }
 
-var concurrency = 1
+type HostsConcurrentSafe struct {
+	sync.RWMutex
+	M map[string]int
+}
 
-func ParseFile(inputPath string, f func(queue chan string)) {
+func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, complete chan bool, hosts *HostsConcurrentSafe, writeQueue chan []byte)) HostsConcurrentSafe {
+	var hosts = HostsConcurrentSafe{M: make(map[string]int)}
 	// This channel has no buffer, so it only accepts input when something is ready
 	// to take it out. This keeps the reading from getting ahead of the writers.
 	workQueue := make(chan string)
+	writeQueue := make(chan []byte)
 
 	// We need to know when everyone is done so we can exit.
 	complete := make(chan bool)
@@ -43,20 +50,30 @@ func ParseFile(inputPath string, f func(queue chan string)) {
 		close(workQueue)
 	}()
 
+	//start writer
+	go util.WriteEntries(complete, writeQueue, outputFile)
+
 	// Now read them all off, concurrently.
-	for i := 0; i < concurrency; i++ {
-		go startWorking(workQueue, complete, f)
+	for i := 0; i < util.CONCURRENCY; i++ {
+		go f(workQueue, complete, &hosts, writeQueue)
 	}
 
 	// Wait for everyone to finish.
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < util.CONCURRENCY; i++ {
 		<-complete
 	}
+
+	close(writeQueue)
+
+	//wait for write queue
+	<-complete
+
+	return hosts
 }
 
-func startWorking(queue chan string, complete chan bool, f func(queue chan string)) {
-	f(queue)
-
-	// Let the main process know we're done.
-	complete <- true
+func AddToMap(key string, hosts *HostsConcurrentSafe) {
+	hosts.Lock()
+	hosts.M["Total Processed"] = hosts.M["Total Processed"] + 1
+	hosts.M[key] = hosts.M[key] + 1
+	hosts.Unlock()
 }

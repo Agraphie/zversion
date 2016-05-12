@@ -35,8 +35,8 @@ func Check(e error) {
 }
 
 func WriteSummaryFileAsJson(result map[string]int, path string, filename string) {
-
-	f, err := os.Create(path + filename + "_summary.json")
+	filePath := path + filename + "_summary.json"
+	f, err := os.Create(filePath)
 	Check(err)
 	defer f.Close()
 

@@ -1,14 +1,11 @@
 package ssh
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/agraphie/zversion/util"
-	"log"
-	"os"
+	"github.com/agraphie/zversion/worker"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -49,11 +46,6 @@ type SSHVersionResult struct {
 	ProcessedZgrabOutput string
 }
 
-type hostsConcurrentSafe struct {
-	sync.RWMutex
-	m map[string]int
-}
-
 func (e SSHEntry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Software: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Software_version)
 }
@@ -67,76 +59,19 @@ func ParseSSHFile(path string) SSHVersionResult {
 
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
-	hosts := parseFile(path, outputFile)
+	hosts := worker.ParseFile(path, outputFile, workOnLine)
 
-	sshVersionResult.ResultAmount = hosts.m
+	sshVersionResult.ResultAmount = hosts.M
 	sshVersionResult.Finished = time.Now()
 
 	sshVersionResult.ProcessedZgrabOutput = path
-	util.WriteSummaryFileAsJson(hosts.m, util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
+	util.WriteSummaryFileAsJson(hosts.M, util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
 	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
 	return sshVersionResult
 }
 
-func addToMap(key string, hosts *hostsConcurrentSafe) {
-	hosts.Lock()
-	hosts.m["Total Processed"] = hosts.m["Total Processed"] + 1
-	hosts.m[key] = hosts.m[key] + 1
-	hosts.Unlock()
-}
-
-func parseFile(inputPath string, outputFile *os.File) hostsConcurrentSafe {
-	var hostsResult = hostsConcurrentSafe{m: make(map[string]int)}
-	// This channel has no buffer, so it only accepts input when something is ready
-	// to take it out. This keeps the reading from getting ahead of the writers.
-	workQueue := make(chan string)
-	writeQueue := make(chan []byte)
-
-	// We need to know when everyone is done so we can exit.
-	complete := make(chan bool)
-
-	// Read the lines into the work queue.
-	go func() {
-		file, err := os.Open(inputPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Close when the functin returns
-		defer file.Close()
-
-		scanner := bufio.NewScanner(file)
-
-		for scanner.Scan() {
-			workQueue <- scanner.Text()
-		}
-
-		// Close the channel so everyone reading from it knows we're done.
-		close(workQueue)
-	}()
-
-	//start writer
-	go util.WriteEntries(complete, writeQueue, outputFile)
-
-	// Now read them all off, concurrently.
-	for i := 0; i < util.CONCURRENCY; i++ {
-		go workOnLine(workQueue, complete, &hostsResult, writeQueue)
-	}
-
-	// Wait for everyone to finish.
-	for i := 0; i < util.CONCURRENCY; i++ {
-		<-complete
-	}
-	close(writeQueue)
-
-	//wait for write queue
-	<-complete
-
-	return hostsResult
-}
-
-func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe, writeQueue chan []byte) {
+func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	inputEntry := inputEntry{}
 
 	for line := range queue {
@@ -148,7 +83,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 		}
 		key := sshEntry.Software_version
 
-		addToMap(key, hosts)
+		worker.AddToMap(key, hosts)
 
 		j, jerr := json.MarshalIndent(sshEntry, "", "  ")
 		if jerr != nil {

@@ -1,14 +1,12 @@
 package http1
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/agraphie/zversion/util"
+	"github.com/agraphie/zversion/worker"
 	"log"
-	"os"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 )
@@ -19,7 +17,6 @@ const ERROR_KEY = "Error"
 const SERVER_AGENT_STRING = "Server:"
 const SERVER_AGENT_DELIMITER = ":"
 const OUTPUT_FILE_NAME = "http_version"
-const OUTPUT_FILE_ENDING = ".json"
 const FILE_ACCESS_PERMISSION = 0755
 
 type BaseEntry struct {
@@ -45,11 +42,6 @@ type HttpVersionResult struct {
 	ProcessedZgrabOutput string
 }
 
-type hostsConcurrentSafe struct {
-	sync.RWMutex
-	m map[string]int
-}
-
 func (e Entry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Agent: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Agent)
 }
@@ -63,13 +55,13 @@ func ParseHttpFile(path string) HttpVersionResult {
 
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
-	hosts := parseFile(path, outputFile)
 
-	httpVersionResult.ResultAmount = hosts.m
+	hosts := worker.ParseFile(path, outputFile, workOnLine)
+	httpVersionResult.ResultAmount = hosts.M
 	httpVersionResult.Finished = time.Now()
 
 	httpVersionResult.ProcessedZgrabOutput = path
-	util.WriteSummaryFileAsJson(hosts.m, util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
+	util.WriteSummaryFileAsJson(hosts.M, util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
 	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
 	return httpVersionResult
@@ -84,65 +76,7 @@ func removeSpaces(str string) string {
 	}, str)
 }
 
-func addToMap(key string, hosts *hostsConcurrentSafe) {
-	hosts.Lock()
-	hosts.m["Total Processed"] = hosts.m["Total Processed"] + 1
-	hosts.m[key] = hosts.m[key] + 1
-	hosts.Unlock()
-}
-
-func parseFile(inputPath string, outputFile *os.File) hostsConcurrentSafe {
-	var hosts = hostsConcurrentSafe{m: make(map[string]int)}
-	// This channel has no buffer, so it only accepts input when something is ready
-	// to take it out. This keeps the reading from getting ahead of the writers.
-	workQueue := make(chan string)
-	writeQueue := make(chan []byte)
-
-	// We need to know when everyone is done so we can exit.
-	complete := make(chan bool)
-
-	// Read the lines into the work queue.
-	go func() {
-		file, err := os.Open(inputPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Close when the functin returns
-		defer file.Close()
-
-		scanner := bufio.NewScanner(file)
-
-		for scanner.Scan() {
-			workQueue <- scanner.Text()
-		}
-
-		// Close the channel so everyone reading from it knows we're done.
-		close(workQueue)
-	}()
-
-	//start writer
-	go util.WriteEntries(complete, writeQueue, outputFile)
-
-	// Now read them all off, concurrently.
-	for i := 0; i < util.CONCURRENCY; i++ {
-		go workOnLine(workQueue, complete, &hosts, writeQueue)
-	}
-
-	// Wait for everyone to finish.
-	for i := 0; i < util.CONCURRENCY; i++ {
-		<-complete
-	}
-
-	close(writeQueue)
-
-	//wait for write queue
-	<-complete
-
-	return hosts
-}
-
-func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe, writeQueue chan []byte) {
+func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	for line := range queue {
 		u := Entry{}
 		json.Unmarshal([]byte(line), &u)
@@ -180,7 +114,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 			key = ERROR_KEY
 		}
 		u.Data.Read = ""
-		addToMap(key, hosts)
+		worker.AddToMap(key, hosts)
 
 		j, jerr := json.MarshalIndent(u, "", "  ")
 		if jerr != nil {
