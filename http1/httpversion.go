@@ -47,7 +47,7 @@ type HttpVersionResult struct {
 
 type hostsConcurrentSafe struct {
 	sync.RWMutex
-	m map[string][]Entry
+	m map[string]int
 }
 
 func (e Entry) String() string {
@@ -55,33 +55,26 @@ func (e Entry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
-	httpVersionResult := HttpVersionResult{}
-	httpVersionResult.Started = time.Now()
+	fmt.Printf("Started at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
-	hosts := parseFile(path)
-
-	httpVersionResult.CompleteResult = hosts.m
-	httpVersionResult.ResultAmount = sumUpResult(hosts)
-	httpVersionResult.Finished = time.Now()
 	inputFileNameSplit := strings.Split(path, "/")
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	httpVersionResult.ProcessedZgrabOutput = path
+	outputFile := util.CreateOutputJsonFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
 
-	writeMapToFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME, httpVersionResult)
+	httpVersionResult := HttpVersionResult{}
+	httpVersionResult.Started = time.Now()
+	hosts := parseFile(path, outputFile)
+
+	httpVersionResult.ResultAmount = hosts.m
+	httpVersionResult.Finished = time.Now()
+
+	httpVersionResult.ProcessedZgrabOutput = path
+	util.WriteSummaryFileAsJson(hosts.m, util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
+	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
 	return httpVersionResult
 }
 
-func sumUpResult(hosts hostsConcurrentSafe) map[string]int {
-	summedUp := make(map[string]int)
-	for key, _ := range hosts.m {
-		for range hosts.m[key] {
-			summedUp[key] = summedUp[key] + 1
-		}
-	}
-
-	return summedUp
-}
 func removeSpaces(str string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsSpace(r) {
@@ -91,51 +84,19 @@ func removeSpaces(str string) string {
 	}, str)
 }
 
-func addToMap(key string, entry Entry, hosts *hostsConcurrentSafe) {
+func addToMap(key string, hosts *hostsConcurrentSafe) {
 	hosts.Lock()
-	hosts.m[key] = append(hosts.m[key], entry)
+	hosts.m["Total Processed"] = hosts.m["Total Processed"] + 1
+	hosts.m[key] = hosts.m[key] + 1
 	hosts.Unlock()
 }
 
-func writeMapToFile(path string, filename string, httpVersionResult HttpVersionResult) {
-	if !util.CheckPathExist(path) {
-		err := os.MkdirAll(path, FILE_ACCESS_PERMISSION)
-		util.Check(err)
-	}
-
-	timestamp := time.Now().Format(util.TIMESTAMP_FORMAT)
-	f, err := os.Create(path + filename + "_" + timestamp + OUTPUT_FILE_ENDING)
-	util.Check(err)
-	defer f.Close()
-
-	j, jerr := json.MarshalIndent(httpVersionResult, "", "  ")
-	if jerr != nil {
-		fmt.Println("jerr:", jerr.Error())
-	}
-
-	w := bufio.NewWriter(f)
-	w.Write(j)
-	w.Flush()
-
-	f, err = os.Create(path + filename + "_" + timestamp + "_summary" + OUTPUT_FILE_ENDING)
-
-	j, jerr = json.MarshalIndent(httpVersionResult.ResultAmount, "", "  ")
-	if jerr != nil {
-		fmt.Println("jerr:", jerr.Error())
-	}
-
-	w = bufio.NewWriter(f)
-	w.Write(j)
-	w.Flush()
-}
-
-var concurrency = 100
-
-func parseFile(inputPath string) hostsConcurrentSafe {
-	var hosts = hostsConcurrentSafe{m: make(map[string][]Entry)}
+func parseFile(inputPath string, outputFile *os.File) hostsConcurrentSafe {
+	var hosts = hostsConcurrentSafe{m: make(map[string]int)}
 	// This channel has no buffer, so it only accepts input when something is ready
 	// to take it out. This keeps the reading from getting ahead of the writers.
 	workQueue := make(chan string)
+	writeQueue := make(chan []byte)
 
 	// We need to know when everyone is done so we can exit.
 	complete := make(chan bool)
@@ -160,19 +121,28 @@ func parseFile(inputPath string) hostsConcurrentSafe {
 		close(workQueue)
 	}()
 
+	//start writer
+	go util.WriteEntries(complete, writeQueue, outputFile)
+
 	// Now read them all off, concurrently.
-	for i := 0; i < concurrency; i++ {
-		go workOnLine(workQueue, complete, &hosts)
+	for i := 0; i < util.CONCURRENCY; i++ {
+		go workOnLine(workQueue, complete, &hosts, writeQueue)
 	}
 
 	// Wait for everyone to finish.
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < util.CONCURRENCY; i++ {
 		<-complete
 	}
+
+	close(writeQueue)
+
+	//wait for write queue
+	<-complete
+
 	return hosts
 }
 
-func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe) {
+func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSafe, writeQueue chan []byte) {
 	for line := range queue {
 		u := Entry{}
 		json.Unmarshal([]byte(line), &u)
@@ -210,7 +180,14 @@ func workOnLine(queue chan string, complete chan bool, hosts *hostsConcurrentSaf
 			key = ERROR_KEY
 		}
 		u.Data.Read = ""
-		addToMap(key, u, hosts)
+		addToMap(key, hosts)
+
+		j, jerr := json.MarshalIndent(u, "", "  ")
+		if jerr != nil {
+			fmt.Println("jerr:", jerr.Error())
+		}
+
+		writeQueue <- j
 	}
 	complete <- true
 }

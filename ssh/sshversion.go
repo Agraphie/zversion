@@ -81,12 +81,10 @@ func ParseSSHFile(path string) SSHVersionResult {
 
 func addToMap(key string, hosts *hostsConcurrentSafe) {
 	hosts.Lock()
-	hosts.m["Total"] = hosts.m["Total"] + 1
+	hosts.m["Total Processed"] = hosts.m["Total Processed"] + 1
 	hosts.m[key] = hosts.m[key] + 1
 	hosts.Unlock()
 }
-
-var concurrency = 50
 
 func parseFile(inputPath string, outputFile *os.File) hostsConcurrentSafe {
 	var hostsResult = hostsConcurrentSafe{m: make(map[string]int)}
@@ -122,12 +120,12 @@ func parseFile(inputPath string, outputFile *os.File) hostsConcurrentSafe {
 	go util.WriteEntries(complete, writeQueue, outputFile)
 
 	// Now read them all off, concurrently.
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < util.CONCURRENCY; i++ {
 		go workOnLine(workQueue, complete, &hostsResult, writeQueue)
 	}
 
 	// Wait for everyone to finish.
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < util.CONCURRENCY; i++ {
 		<-complete
 	}
 	close(writeQueue)
