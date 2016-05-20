@@ -39,7 +39,7 @@ type httpVersionVars struct {
 
 type httpLogVars struct {
 	Title   string
-	Results http1.HttpVersionResult
+	Results map[string]int
 }
 
 func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,12 +52,27 @@ func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var jsonResult http1.HttpVersionResult
+	var jsonResult map[string]int
 	json.Unmarshal(file, &jsonResult)
+	shortResult := shortenResult(jsonResult)
 
-	httpLogVars := httpLogVars{fileName, jsonResult}
+	httpLogVars := httpLogVars{fileName, shortResult}
 	t := render(w, "http_log")
 	t.Execute(w, httpLogVars)
+}
+
+func shortenResult(results map[string]int) map[string]int{
+	newResults := make(map[string]int)
+
+	for k, v := range results {
+		if v > 5000{
+			newResults[k] = v
+		} else {
+			newResults["Other"] = newResults["Other"] + v
+		}
+	}
+
+	return newResults
 }
 
 func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +115,7 @@ func ParseHttpViewHandler(w http.ResponseWriter, r *http.Request) {
 func initiateNewHttpScan(w http.ResponseWriter, r *http.Request) {
 	newScan := http1.RunningHttpScan{Started: time.Now(), ProgressZgrab: 0, ProgressZmap: 0}
 	runningScans[fmt.Sprint(newScan.Started)] = &newScan
-	go http1.LaunchHttpScan(&newScan, util.SCAN_OUTPUT_BASE_PATH, http1.HTTP_SCAN_DEFAULT_PORT, http1.HTTP_SCAN_DEFAULT_SCAN_TARGETS)
+	go http1.LaunchHttpScan(&newScan, util.SCAN_OUTPUT_BASE_PATH, http1.HTTP_SCAN_DEFAULT_PORT, http1.HTTP_SCAN_DEFAULT_SCAN_TARGETS, "")
 
 	http.Redirect(w, r, MAPPING, http.StatusFound)
 }
@@ -133,7 +148,10 @@ func getAnalysisLogs() map[string][]string {
 
 		for _, f := range files {
 			fileName := strings.Split(f.Name(), ".")[0]
-			logs[d.Name()] = append(logs[d.Name()], fileName)
+			if strings.Contains(fileName, "summary") {
+				logs[d.Name()] = append(logs[d.Name()], fileName)
+			}
+
 		}
 	}
 

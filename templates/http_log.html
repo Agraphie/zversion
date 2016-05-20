@@ -13,7 +13,7 @@
 <div class="container">
 
 <div id="chartContainer" style="height: 500px; width: 100%;"></div>
-    {{ range $key, $value := .Results.ResultAmount }}
+    {{ range $key, $value := .Results }}
         <p>{{$key}}: {{$value }}</p>
     {{ end }}
     <a href="/httpVersions/">Zurück</a>
@@ -45,11 +45,11 @@
                             showInLegend: true,
                             toolTipContent: "{y} - <strong>#percent%</strong>",
                             dataPoints: [
-                                {{ range $key, $value := .Results.ResultAmount }}
-
-        {  y: {{$value }}, legendText:"{{$key}}", indexLabel: "{{$key}}" },
+        {{ range $key, $value := .Results }}
+            {{if ne $key "Total Processed"}}
+                {  y: {{$value }}, legendText:"{{$key}}", indexLabel: "{{$key}}" },
+            {{ end }}
         {{ end }}
-
         ]
     }
         ]
