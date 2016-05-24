@@ -1,2 +1,5 @@
 HEAD / HTTP/1.1
 Host: %s
+User-Agent: zgrab
+Accept: */*
+
