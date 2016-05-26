@@ -16,6 +16,7 @@ import (
 
 const MAPPING = "/httpVersions/"
 const SCAN_MAPPING = "/httpVersions/scan"
+const OTHER_THRESHOLD = 100
 
 var runningScans map[string]*http1.RunningHttpScan
 
@@ -61,11 +62,11 @@ func httpLogViewHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, httpLogVars)
 }
 
-func shortenResult(results map[string]int) map[string]int{
+func shortenResult(results map[string]int) map[string]int {
 	newResults := make(map[string]int)
 
 	for k, v := range results {
-		if v > 5000{
+		if v > OTHER_THRESHOLD {
 			newResults[k] = v
 		} else {
 			newResults["Other"] = newResults["Other"] + v
