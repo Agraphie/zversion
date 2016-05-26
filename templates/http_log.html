@@ -10,7 +10,7 @@
 <body>
 {{template "navbar"}}
 
-<div class="container">
+<div class="container-fluid">
 
 <div id="chartContainer" style="height: 500px; width: 100%;"></div>
     {{ range $key, $value := .Results }}
@@ -42,7 +42,7 @@
                             indexLabelLineColor: "darkgrey",
                             indexLabelPlacement: "outside",
                             type: "pie",
-                            showInLegend: true,
+                            showInLegend: false,
                             toolTipContent: "{y} - <strong>#percent%</strong>",
                             dataPoints: [
         {{ range $key, $value := .Results }}
