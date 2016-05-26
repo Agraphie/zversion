@@ -2,14 +2,17 @@ package http1
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/agraphie/zversion/util"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -41,20 +44,15 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 
 	currentScanPath := scanOutputPath + HTTP_SCAN_OUTPUTH_PATH + timestampFormatted + "/"
 	nmapOutputFileName := "zmap_output_" + timestampFormatted + ".csv"
-	zgrabOutputFileName := "zgrab_output_" + timestampFormatted + ".json"
 
 	zmapErrorLog := "zmap_error_" + timestampFormatted
-	zgrabErrorLog := "zgrab_error_" + timestampFormatted
-
 	zmapErr, _ := os.Create(currentScanPath + zmapErrorLog)
-	zgrabErr, _ := os.Create(currentScanPath + zgrabErrorLog)
+
 	defer zmapErr.Close()
-	defer zgrabErr.Close()
 
 	zmapErrW := bufio.NewWriter(zmapErr)
-	zgrabErrW := bufio.NewWriter(zgrabErr)
+
 	defer zmapErrW.Flush()
-	defer zgrabErrW.Flush()
 
 	var c1 *exec.Cmd
 	if blacklistFile == "null" {
@@ -64,7 +62,7 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	}
 
 	c2 := exec.Command("ztee", currentScanPath+nmapOutputFileName)
-	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head", "--output-file="+currentScanPath+zgrabOutputFileName)
+	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head")
 	if runningScan != nil {
 		runningScan.RunningCommands = append(runningScan.RunningCommands, c1)
 		runningScan.RunningCommands = append(runningScan.RunningCommands, c2)
@@ -76,9 +74,14 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 
 	c1StdErr, _ := c1.StderrPipe()
 	c3StdOut, _ := c3.StdoutPipe()
+	c3StdErr, _ := c3.StderrPipe()
 
 	c2.Stderr = os.Stderr
-	c3.Stderr = zgrabErrW
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go handleZgrabOutput(currentScanPath, timestampFormatted, c3StdOut, c3StdErr, &wg)
+	//go handleZgrabError(currentScanPath+zgrabOutputFileName, c3StdErr, zgrabErrW, c3StdOut)
+	//c3.Stderr = zgrabErrW
 
 	c2.Stdin, _ = c1.StdoutPipe()
 	c3.Stdin, _ = c2.StdoutPipe()
@@ -100,12 +103,64 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	_ = c1.Wait()
 
 	c1StdErr.Close()
-	c3StdOut.Close()
+	wg.Wait()
+
 	finished := time.Now()
 	if runningScan != nil {
 		runningScan.Finished = finished
 	}
 	log.Printf("Http scan done in: %d ns\n", time.Since(started))
+}
+
+func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, stdErr io.ReadCloser, wg *sync.WaitGroup) {
+	defer wg.Done()
+	zgrabOutputFileName := "zgrab_output_" + timestampFormatted + ".json"
+	zgrabErrorLog := "zgrab_error_" + timestampFormatted
+	zgrabErr, _ := os.Create(currentScanPath + zgrabErrorLog)
+	zgrabOut, _ := os.Create(currentScanPath + zgrabOutputFileName)
+	defer zgrabErr.Close()
+	zgrabErrW := bufio.NewWriter(zgrabErr)
+	zgrabOutW := bufio.NewWriter(zgrabOut)
+	defer zgrabErrW.Flush()
+	defer zgrabOutW.Flush()
+
+	stdOutScanner := bufio.NewScanner(stdOut)
+	//zgrabOutputFile, _ := os.OpenFile(outputPath, os.O_APPEND|os.O_WRONLY, 0600)
+
+	for stdOutScanner.Scan() {
+		line := stdOutScanner.Text()
+		if strings.Contains(line, "success_count") {
+			os.Stdout.WriteString(line + "\n")
+			continue
+		}
+
+		u := Entry{}
+		json.Unmarshal([]byte(line), &u)
+		if u.Error != "" {
+			handleZgrabError(u, zgrabOutW, zgrabErrW)
+		} else {
+			zgrabOutW.WriteString(line + "\n")
+		}
+	}
+	stdOut.Close()
+	stdErr.Close()
+}
+
+func handleZgrabError(entry Entry, outFile *bufio.Writer, errFile *bufio.Writer) {
+	timeout := time.Duration(5 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+	response, err := client.Get("http://" + entry.BaseEntry.IP)
+	if err == nil {
+		entry.Agent = response.Header.Get("Server")
+		entry.Error = ""
+	} else {
+		errFile.WriteString(entry.BaseEntry.IP + ": " + entry.Error + "\n")
+	}
+
+	j, _ := json.Marshal(entry)
+	outFile.WriteString(string(j) + "\n")
 }
 
 func printAndLog(reader io.ReadCloser, logWriter io.Writer) {
