@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"sync"
 )
 
 const TIMESTAMP_FORMAT = "2006-01-02-15:04:05"
@@ -78,4 +80,16 @@ func WriteEntries(complete chan bool, writeQueue chan []byte, file *os.File) {
 	w.Flush()
 
 	complete <- true
+}
+
+func WriteStringToFile(wg *sync.WaitGroup, writeQueue chan string, file *os.File) {
+	defer file.Close()
+
+	w := io.WriteCloser(file)
+
+	for entry := range writeQueue {
+		w.Write([]byte(entry))
+	}
+
+	wg.Done()
 }
