@@ -47,12 +47,10 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 
 	zmapErrorLog := "zmap_error_" + timestampFormatted
 	zmapErr, _ := os.Create(currentScanPath + zmapErrorLog)
+	zmapErrW := io.WriteCloser(zmapErr)
 
+	//defer zmapErrW.Flush()
 	defer zmapErr.Close()
-
-	zmapErrW := bufio.NewWriter(zmapErr)
-
-	defer zmapErrW.Flush()
 
 	var c1 *exec.Cmd
 	if blacklistFile == "null" {
@@ -77,26 +75,21 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	c3StdErr, _ := c3.StderrPipe()
 
 	c2.Stderr = os.Stderr
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go handleZgrabOutput(currentScanPath, timestampFormatted, c3StdOut, c3StdErr, &wg)
-	//go handleZgrabError(currentScanPath+zgrabOutputFileName, c3StdErr, zgrabErrW, c3StdOut)
-	//c3.Stderr = zgrabErrW
+
+	//	c3.Stderr = zgrabErrW
 
 	c2.Stdin, _ = c1.StdoutPipe()
 	c3.Stdin, _ = c2.StdoutPipe()
 	//	c3.Stdout = os.Stdout
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go handleZgrabOutput(currentScanPath, timestampFormatted, c3StdOut, c3StdErr, &wg)
 
 	_ = c2.Start()
 	_ = c3.Start()
 	_ = c1.Start()
 
-	if runningScan == nil {
-		go printAndLog(c1StdErr, zmapErrW)
-	} else {
-		go progressAndLogZmap(c1StdErr, zmapErrW, runningScan)
-		//go progressZgrab(c1StdErr, c3StdOut, runningScan)
-	}
+	go printAndLog(c1StdErr, zmapErrW)
 
 	_ = c2.Wait()
 	_ = c3.Wait()
@@ -113,40 +106,66 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 }
 
 func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, stdErr io.ReadCloser, wg *sync.WaitGroup) {
-	defer wg.Done()
 	zgrabOutputFileName := "zgrab_output_" + timestampFormatted + ".json"
 	zgrabErrorLog := "zgrab_error_" + timestampFormatted
 	zgrabErr, _ := os.Create(currentScanPath + zgrabErrorLog)
 	zgrabOut, _ := os.Create(currentScanPath + zgrabOutputFileName)
-	defer zgrabErr.Close()
-	zgrabErrW := bufio.NewWriter(zgrabErr)
-	zgrabOutW := bufio.NewWriter(zgrabOut)
-	defer zgrabErrW.Flush()
-	defer zgrabOutW.Flush()
+
+	writeQueueErr := make(chan string)
+	writeQueueOut := make(chan string)
+
+	var wgWriters sync.WaitGroup
+	wgWriters.Add(2)
+	go util.WriteStringToFile(&wgWriters, writeQueueErr, zgrabErr)
+	go util.WriteStringToFile(&wgWriters, writeQueueOut, zgrabOut)
 
 	stdOutScanner := bufio.NewScanner(stdOut)
-	//zgrabOutputFile, _ := os.OpenFile(outputPath, os.O_APPEND|os.O_WRONLY, 0600)
+
+	var wgWorkers sync.WaitGroup
+	wgWorkers.Add(util.CONCURRENCY)
+	workQueue := make(chan []byte)
+	//start workers
+	for i := 0; i < util.CONCURRENCY; i++ {
+		go workOnZgrabOutputLine(workQueue, &wgWorkers, writeQueueErr, writeQueueOut)
+	}
 
 	for stdOutScanner.Scan() {
-		line := stdOutScanner.Text()
-		if strings.Contains(line, "success_count") {
-			os.Stdout.WriteString(line + "\n")
+		workQueue <- stdOutScanner.Bytes()
+	}
+
+	wgWorkers.Wait()
+	close(writeQueueOut)
+	close(writeQueueErr)
+	wgWriters.Wait()
+
+	zgrabErr.Close()
+	zgrabOut.Close()
+	stdOut.Close()
+	stdErr.Close()
+
+	wg.Done()
+}
+
+func workOnZgrabOutputLine(workQueue chan []byte, wg *sync.WaitGroup, writeQueueErr chan string, writeQueueOut chan string) {
+	for line := range workQueue {
+		lineString := string(line)
+		if strings.Contains(lineString, "success_count") {
+			os.Stdout.WriteString(lineString + "\n")
 			continue
 		}
 
 		u := Entry{}
-		json.Unmarshal([]byte(line), &u)
+		json.Unmarshal(line, &u)
 		if u.Error != "" {
-			handleZgrabError(u, zgrabOutW, zgrabErrW)
+			handleZgrabError(u, writeQueueOut, writeQueueErr)
 		} else {
-			zgrabOutW.WriteString(line + "\n")
+			writeQueueOut <- lineString + "\n"
 		}
 	}
-	stdOut.Close()
-	stdErr.Close()
+	wg.Done()
 }
 
-func handleZgrabError(entry Entry, outFile *bufio.Writer, errFile *bufio.Writer) {
+func handleZgrabError(entry Entry, outFile chan string, errFile chan string) {
 	timeout := time.Duration(5 * time.Second)
 	client := http.Client{
 		Timeout: timeout,
@@ -156,11 +175,11 @@ func handleZgrabError(entry Entry, outFile *bufio.Writer, errFile *bufio.Writer)
 		entry.Agent = response.Header.Get("Server")
 		entry.Error = ""
 	} else {
-		errFile.WriteString(entry.BaseEntry.IP + ": " + entry.Error + "\n")
+		errFile <- entry.BaseEntry.IP + ": " + entry.Error + "\n"
 	}
 
 	j, _ := json.Marshal(entry)
-	outFile.WriteString(string(j) + "\n")
+	outFile <- string(j) + "\n"
 }
 
 func printAndLog(reader io.ReadCloser, logWriter io.Writer) {
