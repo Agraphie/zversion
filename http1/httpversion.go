@@ -93,6 +93,10 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
 		switch {
+		case u.Error != "":
+			key = ERROR_KEY
+		case u.Agent != "":
+			key = u.Agent
 		case dataAvailable && contains:
 			splittedString := strings.Split(u.Data.Read, "\n")
 			for i := range splittedString {
