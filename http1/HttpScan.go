@@ -96,13 +96,16 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 	_ = c1.Wait()
 
 	c1StdErr.Close()
+	c3StdOut.Close()
+	c3StdErr.Close()
 	wg.Wait()
 
 	finished := time.Now()
 	if runningScan != nil {
 		runningScan.Finished = finished
 	}
-	log.Printf("Http scan done in: %d ns\n", time.Since(started))
+
+	log.Printf("Http scan done in: %s\n", time.Since(started))
 }
 
 func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, stdErr io.ReadCloser, wg *sync.WaitGroup) {
@@ -133,6 +136,7 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 		workQueue <- stdOutScanner.Bytes()
 	}
 
+	close(workQueue)
 	wgWorkers.Wait()
 	close(writeQueueOut)
 	close(writeQueueErr)
@@ -140,10 +144,9 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 
 	zgrabErr.Close()
 	zgrabOut.Close()
-	stdOut.Close()
-	stdErr.Close()
 
 	wg.Done()
+
 }
 
 func workOnZgrabOutputLine(workQueue chan []byte, wg *sync.WaitGroup, writeQueueErr chan string, writeQueueOut chan string) {
@@ -162,6 +165,7 @@ func workOnZgrabOutputLine(workQueue chan []byte, wg *sync.WaitGroup, writeQueue
 			writeQueueOut <- lineString + "\n"
 		}
 	}
+
 	wg.Done()
 }
 
