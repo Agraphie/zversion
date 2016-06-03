@@ -178,7 +178,7 @@ func handleZgrabError(entry Entry, outFile chan string, errFile chan string) {
 	if err == nil {
 		entry.Agent = response.Header.Get("Server")
 		if entry.Agent == "" {
-			entry.Agent == NO_AGENT
+			entry.Agent = NO_AGENT
 		}
 		entry.Error = ""
 	} else {
