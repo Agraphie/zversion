@@ -177,6 +177,9 @@ func handleZgrabError(entry Entry, outFile chan string, errFile chan string) {
 	response, err := client.Get("http://" + entry.BaseEntry.IP)
 	if err == nil {
 		entry.Agent = response.Header.Get("Server")
+		if entry.Agent == "" {
+			entry.Agent == NO_AGENT
+		}
 		entry.Error = ""
 	} else {
 		errFile <- entry.BaseEntry.IP + ": " + entry.Error + "\n"
