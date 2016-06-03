@@ -30,8 +30,9 @@ type Entry struct {
 	Data struct {
 		Read string `json:",omitempty"`
 	} `json:",omitempty"`
-	Agent string
-	Error string
+	Agent   string
+	Error   string
+	Version string
 }
 
 type HttpVersionResult struct {
