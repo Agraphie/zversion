@@ -6,6 +6,7 @@ import (
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -18,6 +19,7 @@ const SERVER_AGENT_STRING = "Server:"
 const SERVER_AGENT_DELIMITER = ":"
 const OUTPUT_FILE_NAME = "http_version"
 const FILE_ACCESS_PERMISSION = 0755
+const MICROSOFT_IIS_AGENT_REGEX_STRING = `(?i)(Microsoft.IIS(?:\s|/)[0-9](?:\.[0-9]){0,2})`
 
 type BaseEntry struct {
 	IP        string
@@ -106,8 +108,10 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 					if len(serverSplit) < 2 {
 						log.Fatal(u.Data.Read)
 					}
-					u.Agent = removeSpaces(serverSplit[1])
-					key = u.Agent
+					agent := serverSplit[1]
+					cleanAndAssign(agent, &u)
+					//					u.Agent = removeSpaces(serverSplit[1])
+					key = u.Agent + " " + u.Version
 
 					break
 				}
@@ -129,4 +133,36 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		writeQueue <- j
 	}
 	complete <- true
+}
+
+func cleanAndAssign(agentString string, httpEntry *Entry) {
+	microsoftIISRegex := regexp.MustCompile(MICROSOFT_IIS_AGENT_REGEX_STRING)
+
+	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
+
+	if IISMatch != nil {
+		httpEntry.Agent, httpEntry.Version = handleIISServer(IISMatch[1])
+
+		return
+	} else {
+		httpEntry.Agent = agentString
+	}
+}
+
+func handleIISServer(serverString string) (string, string) {
+	split := strings.Split(serverString, "/")
+	splitBlank := strings.Fields(serverString)
+
+	server := "Microsoft-IIS"
+	version := ""
+	if len(split) > 1 {
+		version = split[1]
+	} else if len(splitBlank) > 1 {
+		version = splitBlank[1]
+	}
+	if len(version) == 1 {
+		version = version + ".0"
+	}
+
+	return server, version
 }
