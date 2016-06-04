@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
-	"log"
 	"regexp"
 	"strings"
 	"time"
-	"unicode"
 )
 
-const NO_AGENT = "Not set"
-const NO_AGENT_KEY = "Not set"
+const NO_AGENT = "No server field in header"
+const NO_AGENT_KEY = "No server field in header"
 const ERROR_KEY = "Error"
-const SERVER_AGENT_STRING = "Server:"
-const SERVER_AGENT_DELIMITER = ":"
 const OUTPUT_FILE_NAME = "http_version"
 const FILE_ACCESS_PERMISSION = 0755
-const MICROSOFT_IIS_AGENT_REGEX_STRING = `(?i)(Microsoft.IIS(?:\s|/)[0-9](?:\.[0-9]){0,2})`
+const MICROSOFT_IIS_AGENT_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)([0-9](?:\.[0-9]){0,2})){0,1})`
+const SERVER_FIELD_REGEXP_STRING = `(?:\r\nServer:\s(.*)\r\n)`
+
+var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_AGENT_REGEX_STRING)
 
 type BaseEntry struct {
 	IP        string
@@ -70,26 +69,13 @@ func ParseHttpFile(path string) HttpVersionResult {
 	return httpVersionResult
 }
 
-func removeSpaces(str string) string {
-	return strings.Map(func(r rune) rune {
-		if unicode.IsSpace(r) {
-			return -1
-		}
-		return r
-	}, str)
-}
-
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
+	serverFieldRegexp := regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 	for line := range queue {
 		u := Entry{}
 		json.Unmarshal([]byte(line), &u)
-		dataAvailable := len(u.Data.Read) > 0
-		contains := strings.Contains(u.Data.Read, SERVER_AGENT_STRING)
 
-		if dataAvailable {
-			u.Data.Read = strings.Replace(u.Data.Read, "\r\n", "\n", -1)
-			u.Data.Read = strings.Replace(u.Data.Read, "\n\n", "\n", -1)
-		}
+		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
 
 		var key string
 
@@ -100,23 +86,19 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 			key = ERROR_KEY
 		case u.Agent != "":
 			key = u.Agent
-		case dataAvailable && contains:
-			splittedString := strings.Split(u.Data.Read, "\n")
-			for i := range splittedString {
-				if strings.Contains(splittedString[i], SERVER_AGENT_STRING) {
-					serverSplit := strings.Split(splittedString[i], SERVER_AGENT_DELIMITER)
-					if len(serverSplit) < 2 {
-						log.Fatal(u.Data.Read)
-					}
-					agent := serverSplit[1]
-					cleanAndAssign(agent, &u)
-					//					u.Agent = removeSpaces(serverSplit[1])
+		case len(serverFields) > 0:
+			for _, v := range serverFields {
+				server := v[1]
+				cleanAndAssign(server, &u)
+				if u.Version != "" {
 					key = u.Agent + " " + u.Version
-
-					break
+				} else {
+					key = u.Agent
 				}
+
+				break
 			}
-		case dataAvailable && !contains:
+		case len(u.Data.Read) > 0 && len(serverFields) == 0:
 			u.Agent = NO_AGENT
 			key = NO_AGENT_KEY
 		default:
@@ -136,12 +118,10 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 }
 
 func cleanAndAssign(agentString string, httpEntry *Entry) {
-	microsoftIISRegex := regexp.MustCompile(MICROSOFT_IIS_AGENT_REGEX_STRING)
-
 	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
 
 	if IISMatch != nil {
-		httpEntry.Agent, httpEntry.Version = handleIISServer(IISMatch[1])
+		httpEntry.Agent, httpEntry.Version = handleIISServer(IISMatch)
 
 		return
 	} else {
@@ -149,19 +129,13 @@ func cleanAndAssign(agentString string, httpEntry *Entry) {
 	}
 }
 
-func handleIISServer(serverString string) (string, string) {
-	split := strings.Split(serverString, "/")
-	splitBlank := strings.Fields(serverString)
-
+func handleIISServer(serverString []string) (string, string) {
 	server := "Microsoft-IIS"
-	version := ""
-	if len(split) > 1 {
-		version = split[1]
-	} else if len(splitBlank) > 1 {
-		version = splitBlank[1]
-	}
+	version := serverString[1]
 	if len(version) == 1 {
 		version = version + ".0"
+	} else if len(version) > 5 {
+		fmt.Println(serverString)
 	}
 
 	return server, version
