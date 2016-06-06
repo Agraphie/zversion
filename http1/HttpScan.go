@@ -28,6 +28,14 @@ type RunningHttpScan struct {
 	Started         time.Time
 	Finished        time.Time
 }
+type RawZversionEntry struct {
+	BaseEntry
+	Data struct {
+		Read string `json:",omitempty"`
+	} `json:",omitempty"`
+	Error string
+	Agent string
+}
 
 /**
 commands is a map where the key is the timestamp when the scan was launched and the values are all cmds which are
@@ -157,7 +165,7 @@ func workOnZgrabOutputLine(workQueue chan []byte, wg *sync.WaitGroup, writeQueue
 			continue
 		}
 
-		u := Entry{}
+		u := RawZversionEntry{}
 		json.Unmarshal(line, &u)
 		if u.Error != "" {
 			handleZgrabError(u, writeQueueOut, writeQueueErr)
@@ -169,7 +177,7 @@ func workOnZgrabOutputLine(workQueue chan []byte, wg *sync.WaitGroup, writeQueue
 	wg.Done()
 }
 
-func handleZgrabError(entry Entry, outFile chan string, errFile chan string) {
+func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan string) {
 	timeout := time.Duration(5 * time.Second)
 	client := http.Client{
 		Timeout: timeout,

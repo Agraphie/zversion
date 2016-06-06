@@ -26,11 +26,9 @@ type BaseEntry struct {
 	Error     string
 }
 
-type Entry struct {
+type ZversionEntry struct {
 	BaseEntry
-	Data struct {
-		Read string `json:",omitempty"`
-	} `json:",omitempty"`
+
 	Agent   string
 	Error   string
 	Version string
@@ -40,11 +38,11 @@ type HttpVersionResult struct {
 	Started              time.Time
 	Finished             time.Time
 	ResultAmount         map[string]int
-	CompleteResult       map[string][]Entry
+	CompleteResult       map[string][]ZversionEntry
 	ProcessedZgrabOutput string
 }
 
-func (e Entry) String() string {
+func (e ZversionEntry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Agent: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Agent)
 }
 
@@ -72,8 +70,9 @@ func ParseHttpFile(path string) HttpVersionResult {
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	serverFieldRegexp := regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 	for line := range queue {
-		u := Entry{}
+		u := RawZversionEntry{}
 		json.Unmarshal([]byte(line), &u)
+		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Agent: u.Agent, Error: u.Error}
 
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
 
@@ -82,32 +81,31 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
 		switch {
-		case u.Error != "":
+		case httpEntry.Error != "":
 			key = ERROR_KEY
-		case u.Agent != "":
-			key = u.Agent
+		case httpEntry.Agent != "":
+			key = httpEntry.Agent
 		case len(serverFields) > 0:
 			for _, v := range serverFields {
 				server := v[1]
-				cleanAndAssign(server, &u)
-				if u.Version != "" {
-					key = u.Agent + " " + u.Version
+				cleanAndAssign(server, &httpEntry)
+				if httpEntry.Version != "" {
+					key = httpEntry.Agent + " " + httpEntry.Version
 				} else {
-					key = u.Agent
+					key = httpEntry.Agent
 				}
 
 				break
 			}
 		case len(u.Data.Read) > 0 && len(serverFields) == 0:
-			u.Agent = NO_AGENT
+			httpEntry.Agent = NO_AGENT
 			key = NO_AGENT_KEY
 		default:
 			key = ERROR_KEY
 		}
-		u.Data.Read = ""
 		worker.AddToMap(key, hosts)
 
-		j, jerr := json.MarshalIndent(u, "", "  ")
+		j, jerr := json.MarshalIndent(httpEntry, "", "  ")
 		if jerr != nil {
 			fmt.Println("jerr:", jerr.Error())
 		}
@@ -117,7 +115,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 	complete <- true
 }
 
-func cleanAndAssign(agentString string, httpEntry *Entry) {
+func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
 
 	if IISMatch != nil {
