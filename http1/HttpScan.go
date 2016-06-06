@@ -28,13 +28,16 @@ type RunningHttpScan struct {
 	Started         time.Time
 	Finished        time.Time
 }
+type Server struct {
+	Agent   string
+	Version string
+}
 type RawZversionEntry struct {
 	BaseEntry
 	Data struct {
 		Read string `json:",omitempty"`
 	} `json:",omitempty"`
 	Error string
-	Agent string
 }
 
 /**
@@ -184,10 +187,16 @@ func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan 
 	}
 	response, err := client.Get("http://" + entry.BaseEntry.IP)
 	if err == nil {
-		entry.Agent = response.Header.Get("Server")
-		if entry.Agent == "" {
-			entry.Agent = NO_AGENT
+		response.Proto
+		log.Println("Fallback! " + entry.BaseEntry.IP)
+		log.Println(entry.Data.Read)
+		log.Println(response.Header["Server"])
+		for _, v := range response.Header["Server"] {
+			entry.Data.Read += "Server: " + v + "\r\n"
 		}
+		//entry.Data.Read = response.Header()["Server"]
+		log.Println(entry.Data.Read)
+
 		entry.Error = ""
 	} else {
 		errFile <- entry.BaseEntry.IP + ": " + entry.Error + "\n"
