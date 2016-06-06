@@ -15,10 +15,14 @@ const NO_AGENT_KEY = "No server field in header"
 const ERROR_KEY = "Error"
 const OUTPUT_FILE_NAME = "http_version"
 const FILE_ACCESS_PERMISSION = 0755
-const MICROSOFT_IIS_AGENT_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)([0-9](?:\.[0-9]){0,2})){0,1})`
-const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)?Server:\s(.*)\r\n)`
+const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2})){0,1})`
+const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
+const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:lighthttpd(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
 
-var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_AGENT_REGEX_STRING)
+const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
+
+var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_SERVER_REGEX_STRING)
+var apacheRegex = regexp.MustCompile(APACHE_SERVER_REGEX_STRING)
 
 type BaseEntry struct {
 	IP        string
@@ -74,7 +78,6 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Error: u.Error}
 
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
-
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
 		switch {
@@ -113,10 +116,12 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
+	apacheMatch := apacheRegex.FindStringSubmatch(agentString)
 
 	if IISMatch != nil {
 		httpEntry.Agents = append(httpEntry.Agents, handleIISServer(IISMatch))
-		return
+	} else if apacheMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleApacheServer(apacheMatch))
 	} else {
 		httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
 	}
@@ -124,12 +129,23 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 
 func handleIISServer(serverString []string) Server {
 	server := "Microsoft-IIS"
-	version := serverString[1]
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+func handleApacheServer(serverString []string) Server {
+	server := "Apache"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+
+func appendZero(version string) string {
 	if len(version) == 1 {
 		version = version + ".0"
 	} else if len(version) > 5 {
-		fmt.Println(serverString)
+		//fmt.Println("wat")
 	}
 
-	return Server{Agent: server, Version: version}
+	return version
 }
