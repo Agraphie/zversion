@@ -17,12 +17,17 @@ const OUTPUT_FILE_NAME = "http_version"
 const FILE_ACCESS_PERMISSION = 0755
 const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2})){0,1})`
 const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
-const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:lighthttpd(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
+const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
+const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
+const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
 var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_SERVER_REGEX_STRING)
 var apacheRegex = regexp.MustCompile(APACHE_SERVER_REGEX_STRING)
+var nginxRegex = regexp.MustCompile(NGINX_SERVER_REGEX_STRING)
+var lighthttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
+var atsRegex = regexp.MustCompile(ATS_SERVER_REGEX_STRING)
 
 type BaseEntry struct {
 	IP        string
@@ -116,15 +121,50 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
-	apacheMatch := apacheRegex.FindStringSubmatch(agentString)
-
 	if IISMatch != nil {
 		httpEntry.Agents = append(httpEntry.Agents, handleIISServer(IISMatch))
-	} else if apacheMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleApacheServer(apacheMatch))
-	} else {
-		httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
+		return
 	}
+
+	apacheMatch := apacheRegex.FindStringSubmatch(agentString)
+	if apacheMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleApacheServer(apacheMatch))
+		return
+	}
+
+	nginxMatch := nginxRegex.FindStringSubmatch(agentString)
+	if nginxMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleNginxServer(nginxMatch))
+		return
+	}
+
+	lighthttpdMatch := lighthttpdRegex.FindStringSubmatch(agentString)
+	if lighthttpdMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleLighthttpdServer(lighthttpdMatch))
+		return
+	}
+
+	atsMatch := atsRegex.FindStringSubmatch(agentString)
+	if atsMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleATSServer(atsMatch))
+		return
+	}
+
+	httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
+}
+
+func handleATSServer(serverString []string) Server {
+	server := "ATS"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+
+func handleLighthttpdServer(serverString []string) Server {
+	server := "lighthttpd"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
 }
 
 func handleIISServer(serverString []string) Server {
@@ -139,12 +179,16 @@ func handleApacheServer(serverString []string) Server {
 
 	return Server{Agent: server, Version: version}
 }
+func handleNginxServer(serverString []string) Server {
+	server := "nginx"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
 
 func appendZero(version string) string {
 	if len(version) == 1 {
 		version = version + ".0"
-	} else if len(version) > 5 {
-		//fmt.Println("wat")
 	}
 
 	return version
