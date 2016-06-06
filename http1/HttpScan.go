@@ -187,16 +187,12 @@ func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan 
 	}
 	response, err := client.Get("http://" + entry.BaseEntry.IP)
 	if err == nil {
-		response.Proto
-		log.Println("Fallback! " + entry.BaseEntry.IP)
-		log.Println(entry.Data.Read)
-		log.Println(response.Header["Server"])
 		for _, v := range response.Header["Server"] {
-			entry.Data.Read += "Server: " + v + "\r\n"
+			entry.Data.Read += "\r\n" + "Server: " + v
 		}
-		//entry.Data.Read = response.Header()["Server"]
-		log.Println(entry.Data.Read)
-
+		if entry.Data.Read != "" {
+			entry.Data.Read += "\r\n"
+		}
 		entry.Error = ""
 	} else {
 		errFile <- entry.BaseEntry.IP + ": " + entry.Error + "\n"

@@ -1,20 +1,38 @@
 package main
 
 import (
+	"log"
 	"net/http"
-	"fmt"
-	"net"
 )
 
 func main() {
-	req, err := http.NewRequest("HEAD", net.ParseIP("80.14.249.95"), nil)
-	client := http.Client{}
-	resp, err := client.Do(req)
-	//resp, err := http.Head("http://80.14.249.95")
-	if err != nil {
-		// handle error
-	}
+	//client := &http.Client{}
+	//
+	//req, err := http.NewRequest("HEAD", "http://137.226.113.4", nil)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	////req.Header.Set("User-Agent", "Curl/7.1.20")
+	//
+	//resp, err := client.Do(req)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//
+	////defer resp.Body.Close()
+	////body, err := ioutil.ReadAll(resp.Body)
+	////if err != nil {
+	////	log.Fatalln(err)
+	////}
+	//
+	//log.Println(resp.Header)
 
-	fmt.Println(resp)
+	req1, err1 := http.Get("http://69.164.201.157")
+	req1.Body.Close()
+	if err1 != nil {
+		log.Fatalln(err1)
+	}
+	log.Println(req1.Header["Server"])
 
 }
