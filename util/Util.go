@@ -68,14 +68,14 @@ func WriteEntries(complete chan bool, writeQueue chan []byte, file *os.File) {
 	defer file.Close()
 
 	w := bufio.NewWriter(file)
-	w.WriteString("{\n[\n")
+	//w.WriteString("{\n[\n")
 
 	for entry := range writeQueue {
 		w.Write(entry)
-		w.WriteString(",\n")
+		w.WriteString("\n")
 	}
 
-	w.WriteString("\n]\n}\n")
+	//w.WriteString("\n]\n}\n")
 
 	w.Flush()
 
