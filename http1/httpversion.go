@@ -89,10 +89,12 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		case httpEntry.Error != "":
 			worker.AddToMap(ERROR_KEY, hosts)
 		case len(serverFields) > 0:
+			//first get the server fields and clean them
 			for _, v := range serverFields {
 				server := v[1]
 				cleanAndAssign(server, &httpEntry)
 			}
+			//then increase the count for all included servers
 			for _, v := range httpEntry.Agents {
 				var key string
 				if v.Version != "" {
