@@ -22,6 +22,7 @@ const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
 const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd` + BASE_REGEX
 const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
 const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
+const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?)){0,1})`
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
@@ -30,6 +31,7 @@ var apacheRegex = regexp.MustCompile(APACHE_SERVER_REGEX_STRING)
 var nginxRegex = regexp.MustCompile(NGINX_SERVER_REGEX_STRING)
 var lighthttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
 var atsRegex = regexp.MustCompile(ATS_SERVER_REGEX_STRING)
+var boaRegex = regexp.MustCompile(BOA_SERVER_REGEX_STRING)
 
 type BaseEntry struct {
 	IP        string
@@ -73,6 +75,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.ProcessedZgrabOutput = path
 	util.WriteSummaryFileAsJson(hosts.M, util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
 	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+	fmt.Printf("Not cleaned: %d\n", notCleaned)
 
 	return httpVersionResult
 }
@@ -123,6 +126,8 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 	complete <- true
 }
 
+var notCleaned = 0
+
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
 	if IISMatch != nil {
@@ -154,7 +159,21 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		return
 	}
 
+	boaMatch := boaRegex.FindStringSubmatch(agentString)
+	if boaMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleBOAServer(boaMatch))
+		return
+	}
+
 	httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
+	notCleaned++
+}
+
+func handleBOAServer(serverString []string) Server {
+	server := "BOA"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
 }
 
 func handleATSServer(serverString []string) Server {
