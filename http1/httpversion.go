@@ -23,6 +23,9 @@ const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd` + BASE_REGEX
 const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
 const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
 const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?)){0,1})`
+const ALLEGRO_SOFTWARE_ROMPAGER_SERVER_REGEX_STRING = `(?i)(?:Allegro-Software-RomPager` + BASE_REGEX
+const ALLEGRO_SERVE_SERVER_REGEX_STRING = `(?i)(?:AllegroServe` + BASE_REGEX
+const SQUID_SERVER_REGEX_STRING = `(?i)(?:Squid(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
@@ -32,6 +35,9 @@ var nginxRegex = regexp.MustCompile(NGINX_SERVER_REGEX_STRING)
 var lighthttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
 var atsRegex = regexp.MustCompile(ATS_SERVER_REGEX_STRING)
 var boaRegex = regexp.MustCompile(BOA_SERVER_REGEX_STRING)
+var allegroSoftwareRomPagerRegex = regexp.MustCompile(ALLEGRO_SOFTWARE_ROMPAGER_SERVER_REGEX_STRING)
+var allegroServeRegex = regexp.MustCompile(ALLEGRO_SERVE_SERVER_REGEX_STRING)
+var squidRegex = regexp.MustCompile(SQUID_SERVER_REGEX_STRING)
 
 type BaseEntry struct {
 	IP        string
@@ -165,8 +171,47 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		return
 	}
 
+	allegroSoftwareRomPagerMatch := allegroSoftwareRomPagerRegex.FindStringSubmatch(agentString)
+	if allegroSoftwareRomPagerMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleAllegroSoftwareRomPagerServer(allegroSoftwareRomPagerMatch))
+		return
+	}
+
+	allegroServeMatch := allegroServeRegex.FindStringSubmatch(agentString)
+	if allegroServeMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleAllegroServeServer(allegroServeMatch))
+		return
+	}
+
+	squidMatch := squidRegex.FindStringSubmatch(agentString)
+	if squidMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleSquidServer(squidMatch))
+		return
+	}
+
 	httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
 	notCleaned++
+}
+
+func handleSquidServer(serverString []string) Server {
+	server := "Squid"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+
+func handleAllegroServeServer(serverString []string) Server {
+	server := "AllegroServe"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+
+func handleAllegroSoftwareRomPagerServer(serverString []string) Server {
+	server := "Allegro-Software-RomPager"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
 }
 
 func handleBOAServer(serverString []string) Server {
