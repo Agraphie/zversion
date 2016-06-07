@@ -17,9 +17,11 @@ const OUTPUT_FILE_NAME = "http_version"
 const FILE_ACCESS_PERMISSION = 0755
 const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2})){0,1})`
 const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
-const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
-const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
-const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
+
+const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
+const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd` + BASE_REGEX
+const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
+const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
