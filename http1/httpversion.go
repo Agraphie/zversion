@@ -48,6 +48,7 @@ var jettyRegex = regexp.MustCompile(JETTY_SERVER_REGEX_STRING)
 var romPagerRegex = regexp.MustCompile(ROM_PAGER_SERVER_REGEX_STRING)
 var microHttpdRegex = regexp.MustCompile(MICRO_HTTPD_PAGER_SERVER_REGEX_STRING)
 var miniHttpdRegex = regexp.MustCompile(MINI_HTTPD_PAGER_SERVER_REGEX_STRING)
+var serverFieldRegexp = regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 
 type BaseEntry struct {
 	IP        string
@@ -97,17 +98,17 @@ func ParseHttpFile(path string) HttpVersionResult {
 }
 
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
-	serverFieldRegexp := regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 	for line := range queue {
 		u := RawZversionEntry{}
 		json.Unmarshal([]byte(line), &u)
 		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Error: u.Error}
-
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
+
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
 		switch {
 		case httpEntry.Error != "":
+			httpEntry.Agents = make([]Server, 0)
 			worker.AddToMap(ERROR_KEY, hosts)
 		case len(serverFields) > 0:
 			//first get the server fields and clean them
