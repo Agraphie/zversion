@@ -28,6 +28,21 @@ type ZversionEntry struct {
 	Error  string
 }
 
+type RawCensysEntry struct {
+	BaseEntry
+
+	Data struct {
+		Http struct {
+			Response struct {
+				Headers struct {
+					Server []string
+				}
+			}
+		}
+		Error string
+	}
+}
+
 type HttpVersionResult struct {
 	Started              time.Time
 	Finished             time.Time
@@ -64,8 +79,23 @@ func ParseHttpFile(path string) HttpVersionResult {
 
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	for line := range queue {
+		rawCensysEntry := RawCensysEntry{}
+		json.Unmarshal([]byte(line), &rawCensysEntry)
 		u := RawZversionEntry{}
-		json.Unmarshal([]byte(line), &u)
+
+		if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
+			u.BaseEntry = rawCensysEntry.BaseEntry
+			u.Error = rawCensysEntry.Error
+			for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
+				u.Data.Read += "\r\n" + "Server: " + v
+			}
+			if u.Data.Read != "" {
+				u.Data.Read += "\r\n"
+			}
+		} else {
+			json.Unmarshal([]byte(line), &u)
+		}
+
 		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Error: u.Error}
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
 
