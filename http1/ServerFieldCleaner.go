@@ -2,22 +2,25 @@ package http1
 
 import "regexp"
 
-const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2})){0,1})`
-const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
+const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2}))?)`
+const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?))?)`
 
-const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
+const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}))?)`
 const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd` + BASE_REGEX
 const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
 const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
-const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?)){0,1})`
+const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?))?)`
 const ALLEGRO_SOFTWARE_ROMPAGER_SERVER_REGEX_STRING = `(?i)(?:Allegro-Software-RomPager` + BASE_REGEX
 const ALLEGRO_SERVE_SERVER_REGEX_STRING = `(?i)(?:AllegroServe` + BASE_REGEX
-const SQUID_SERVER_REGEX_STRING = `(?i)(?:Squid(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
-const TENGINE_SERVER_REGEX_STRING = `(?i)(?:Tengine(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
-const JETTY_SERVER_REGEX_STRING = `(?i)(?:jetty(?:(?:\s|/|\(|-)(\d+(?:\.\d+){0,2}(\.rc\d)?)){0,1})`
-const ROM_PAGER_SERVER_REGEX_STRING = `(?i)(?:RomPager(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
-const MICRO_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:micro_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
-const MINI_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:mini_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
+const SQUID_SERVER_REGEX_STRING = `(?i)(?:Squid(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const TENGINE_SERVER_REGEX_STRING = `(?i)(?:Tengine(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const JETTY_SERVER_REGEX_STRING = `(?i)(?:jetty(?:(?:\s|/|\(|-)(\d+(?:\.\d+){0,2}(\.rc\d)?))?)`
+const ROM_PAGER_SERVER_REGEX_STRING = `(?i)(?:RomPager(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const MICRO_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:micro_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const MINI_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:mini_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const AOL_SERVER_REGEX_STRING = `(?i)(?:AOLserver` + BASE_REGEX
+const ABYSS_REGEX_STRING = `(?i)(?:Abyss(?:(?:\s|/|-)(\d+(?:\.\d+){0,3}(?:-X\d)?)))`
+const AGRANAT_REGEX_STRING = `(?i)(?:Agranat-EmWeb` + BASE_REGEX
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
@@ -35,6 +38,10 @@ var jettyRegex = regexp.MustCompile(JETTY_SERVER_REGEX_STRING)
 var romPagerRegex = regexp.MustCompile(ROM_PAGER_SERVER_REGEX_STRING)
 var microHttpdRegex = regexp.MustCompile(MICRO_HTTPD_PAGER_SERVER_REGEX_STRING)
 var miniHttpdRegex = regexp.MustCompile(MINI_HTTPD_PAGER_SERVER_REGEX_STRING)
+var aolServerRegex = regexp.MustCompile(AOL_SERVER_REGEX_STRING)
+var abyssServerRegex = regexp.MustCompile(ABYSS_REGEX_STRING)
+var agranatServerRegex = regexp.MustCompile(AGRANAT_REGEX_STRING)
+
 var serverFieldRegexp = regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 
 var notCleaned = 0
@@ -124,8 +131,47 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		return
 	}
 
+	aolServerMatch := aolServerRegex.FindStringSubmatch(agentString)
+	if aolServerMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleAolServerServer(aolServerMatch))
+		return
+	}
+
+	abyssServerMatch := abyssServerRegex.FindStringSubmatch(agentString)
+	if abyssServerMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleAbyssServer(abyssServerMatch))
+		return
+	}
+
+	agranatServerMatch := agranatServerRegex.FindStringSubmatch(agentString)
+	if agranatServerMatch != nil {
+		httpEntry.Agents = append(httpEntry.Agents, handleAgranatServer(agranatServerMatch))
+		return
+	}
+
 	httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
 	notCleaned++
+}
+
+func handleAgranatServer(serverString []string) Server {
+	server := "Agranat-EmWeb"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+
+func handleAbyssServer(serverString []string) Server {
+	server := "Abyss"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
+}
+
+func handleAolServerServer(serverString []string) Server {
+	server := "AOLServer"
+	version := appendZero(serverString[1])
+
+	return Server{Agent: server, Version: version}
 }
 
 func handleMiniHttpdServer(serverString []string) Server {
