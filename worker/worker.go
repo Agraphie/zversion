@@ -41,11 +41,16 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 		defer file.Close()
 
 		scanner := bufio.NewScanner(file)
+		buf := make([]byte, 0, 64*1024)
+		scanner.Buffer(buf, 1024*1024)
 
 		for scanner.Scan() {
 			workQueue <- scanner.Text()
 		}
 
+		if scanner.Err() != nil {
+			log.Fatal(scanner.Err())
+		}
 		// Close the channel so everyone reading from it knows we're done.
 		close(workQueue)
 	}()
