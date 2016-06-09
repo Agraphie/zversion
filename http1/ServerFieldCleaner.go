@@ -1,5 +1,42 @@
 package http1
 
+import "regexp"
+
+const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2})){0,1})`
+const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?)){0,1})`
+
+const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2})){0,1})`
+const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd` + BASE_REGEX
+const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
+const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
+const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?)){0,1})`
+const ALLEGRO_SOFTWARE_ROMPAGER_SERVER_REGEX_STRING = `(?i)(?:Allegro-Software-RomPager` + BASE_REGEX
+const ALLEGRO_SERVE_SERVER_REGEX_STRING = `(?i)(?:AllegroServe` + BASE_REGEX
+const SQUID_SERVER_REGEX_STRING = `(?i)(?:Squid(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
+const TENGINE_SERVER_REGEX_STRING = `(?i)(?:Tengine(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
+const JETTY_SERVER_REGEX_STRING = `(?i)(?:jetty(?:(?:\s|/|\(|-)(\d+(?:\.\d+){0,2}(\.rc\d)?)){0,1})`
+const ROM_PAGER_SERVER_REGEX_STRING = `(?i)(?:RomPager(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
+const MICRO_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:micro_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
+const MINI_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:mini_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2})){0,1})`
+
+const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
+
+var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_SERVER_REGEX_STRING)
+var apacheRegex = regexp.MustCompile(APACHE_SERVER_REGEX_STRING)
+var nginxRegex = regexp.MustCompile(NGINX_SERVER_REGEX_STRING)
+var lighthttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
+var atsRegex = regexp.MustCompile(ATS_SERVER_REGEX_STRING)
+var boaRegex = regexp.MustCompile(BOA_SERVER_REGEX_STRING)
+var allegroSoftwareRomPagerRegex = regexp.MustCompile(ALLEGRO_SOFTWARE_ROMPAGER_SERVER_REGEX_STRING)
+var allegroServeRegex = regexp.MustCompile(ALLEGRO_SERVE_SERVER_REGEX_STRING)
+var squidRegex = regexp.MustCompile(SQUID_SERVER_REGEX_STRING)
+var tengineRegex = regexp.MustCompile(TENGINE_SERVER_REGEX_STRING)
+var jettyRegex = regexp.MustCompile(JETTY_SERVER_REGEX_STRING)
+var romPagerRegex = regexp.MustCompile(ROM_PAGER_SERVER_REGEX_STRING)
+var microHttpdRegex = regexp.MustCompile(MICRO_HTTPD_PAGER_SERVER_REGEX_STRING)
+var miniHttpdRegex = regexp.MustCompile(MINI_HTTPD_PAGER_SERVER_REGEX_STRING)
+var serverFieldRegexp = regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
+
 var notCleaned = 0
 
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
