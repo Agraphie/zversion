@@ -2,11 +2,11 @@ package http1
 
 import "regexp"
 
-const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:Microsoft.IIS(?:(?:\s|/)(\d+(?:\.\d){0,2}))?)`
+const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:(?:Microsoft.)?IIS(?:(?:\s|/)(\d+(?:\.\d)(?:\.[1-])?))?)`
 const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?))?)`
 
 const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}))?)`
-const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:Lighthttpd` + BASE_REGEX
+const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:lighttpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
 const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
 const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
 const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?))?)`
@@ -19,15 +19,30 @@ const ROM_PAGER_SERVER_REGEX_STRING = `(?i)(?:RomPager(?:(?:\s|/|-)(\d+(?:\.\d+)
 const MICRO_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:micro_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
 const MINI_HTTPD_PAGER_SERVER_REGEX_STRING = `(?i)(?:mini_httpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
 const AOL_SERVER_REGEX_STRING = `(?i)(?:AOLserver` + BASE_REGEX
-const ABYSS_REGEX_STRING = `(?i)(?:Abyss(?:(?:\s|/|-)(\d+(?:\.\d+){0,3}(?:-X\d)?)))`
-const AGRANAT_REGEX_STRING = `(?i)(?:Agranat-EmWeb` + BASE_REGEX
+const ABYSS_SERVER_REGEX_STRING = `(?i)(?:Abyss(?:(?:\s|/|-)(\d+(?:\.\d+){0,3}(?:-X\d)?)))`
+const AGRANAT_SERVER_REGEX_STRING = `(?i)(?:Agranat-EmWeb` + BASE_REGEX
+const MICROSOFT_HTTPAPI_SERVER_REGEX_STRING = `(?i)(?:Microsoft-HTTPAPI` + BASE_REGEX
+const CHERRYPY_SERVER_REGEX_STRING = `(?i)(?:CherryPy` + BASE_REGEX
+const CHEROKEE_SERVER_REGEX_STRING = `(?i)(?:Cherokee` + BASE_REGEX
+const COMMUNIGATE_SERVER_REGEX_STRING = `(?i)(?:CommuniGatePro` + BASE_REGEX
+const EDGEPRISM_SERVER_REGEX_STRING = `(?i)(?:EdgePrism(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
+const FLYWHEEL_SERVER_REGEX_STRING = `(?i)(?:Flywheel(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
+
+//const GLASSFISH_SERVER_REGEX_STRING = `(?i)(?:GlassFish(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
+const GOAHEAD_SERVER_REGEX_STRING = `(?i)(?:GoAhead(?:(?:\s|/|-)(?:.*?(?:\s|/|-))?(\d+(?:\.\d+){0,2}))?)`
+const IDEA_WEB_SERVER_SERVER_REGEX_STRING = `(?i)(?:IdeaWebServer(?:(?:\s|/)v(\d+(?:\.\d+){0,2}))?)`
+const INDY_SERVER_REGEX_STRING = `(?i)(?:Indy(?:(?:\s|/)(\d+(?:\.\d+){0,2}))?)`
+const MBEDTHIS_SERVER_REGEX_STRING = `(?i)(?:Mbedthis` + BASE_REGEX
+const PRTG_SERVER_REGEX_STRING = `(?i)(?:PRTG(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
+const KANGLE_SERVER_REGEX_STRING = `(?i)(?:Kangle(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
+const THTTPD_SERVER_REGEX_STRING = `(?i)(?:thttpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
 var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_SERVER_REGEX_STRING)
 var apacheRegex = regexp.MustCompile(APACHE_SERVER_REGEX_STRING)
 var nginxRegex = regexp.MustCompile(NGINX_SERVER_REGEX_STRING)
-var lighthttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
+var lighttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
 var atsRegex = regexp.MustCompile(ATS_SERVER_REGEX_STRING)
 var boaRegex = regexp.MustCompile(BOA_SERVER_REGEX_STRING)
 var allegroSoftwareRomPagerRegex = regexp.MustCompile(ALLEGRO_SOFTWARE_ROMPAGER_SERVER_REGEX_STRING)
@@ -39,235 +54,73 @@ var romPagerRegex = regexp.MustCompile(ROM_PAGER_SERVER_REGEX_STRING)
 var microHttpdRegex = regexp.MustCompile(MICRO_HTTPD_PAGER_SERVER_REGEX_STRING)
 var miniHttpdRegex = regexp.MustCompile(MINI_HTTPD_PAGER_SERVER_REGEX_STRING)
 var aolServerRegex = regexp.MustCompile(AOL_SERVER_REGEX_STRING)
-var abyssServerRegex = regexp.MustCompile(ABYSS_REGEX_STRING)
-var agranatServerRegex = regexp.MustCompile(AGRANAT_REGEX_STRING)
+var abyssServerRegex = regexp.MustCompile(ABYSS_SERVER_REGEX_STRING)
+var agranatServerRegex = regexp.MustCompile(AGRANAT_SERVER_REGEX_STRING)
+var microsoftHttpApiRegex = regexp.MustCompile(MICROSOFT_HTTPAPI_SERVER_REGEX_STRING)
+var cherryPyRegex = regexp.MustCompile(CHERRYPY_SERVER_REGEX_STRING)
+var cherokeeRegex = regexp.MustCompile(CHEROKEE_SERVER_REGEX_STRING)
+var communiGateProRegex = regexp.MustCompile(COMMUNIGATE_SERVER_REGEX_STRING)
+var edgePrismRegex = regexp.MustCompile(EDGEPRISM_SERVER_REGEX_STRING)
+var flywheelRegex = regexp.MustCompile(FLYWHEEL_SERVER_REGEX_STRING)
+
+//var glassfishRegex = regexp.MustCompile(GLASSFISH_SERVER_REGEX_STRING)
+var goaheadRegex = regexp.MustCompile(GOAHEAD_SERVER_REGEX_STRING)
+var ideaWebServerRegex = regexp.MustCompile(IDEA_WEB_SERVER_SERVER_REGEX_STRING)
+var IndyRegex = regexp.MustCompile(INDY_SERVER_REGEX_STRING)
+var mbedthisRegex = regexp.MustCompile(MBEDTHIS_SERVER_REGEX_STRING)
+var prtgRegex = regexp.MustCompile(PRTG_SERVER_REGEX_STRING)
+var kangleRegex = regexp.MustCompile(KANGLE_SERVER_REGEX_STRING)
+var thttpdRegex = regexp.MustCompile(KANGLE_SERVER_REGEX_STRING)
+
+var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
+	"Microsoft-IIS": microsoftIISRegex,
+	"Apache":        apacheRegex,
+	"nginx":         nginxRegex,
+	"lighttpd":      lighttpdRegex,
+	"ATS":           atsRegex,
+	"BOA":           boaRegex,
+	"Allegro Software RomPager": allegroSoftwareRomPagerRegex,
+	"AllegroServe":              allegroServeRegex,
+	"squid":                     squidRegex,
+	"tengine":                   tengineRegex,
+	"jetty":                     jettyRegex,
+	"RomPager":                  romPagerRegex,
+	"mini_httpd":                miniHttpdRegex,
+	"micro_httpd":               miniHttpdRegex,
+	"AOL Server":                aolServerRegex,
+	"Abyss":                     abyssServerRegex,
+	"Agranat-EmWeb":             agranatServerRegex,
+	"Microsoft-HTTPAPI":         microsoftHttpApiRegex,
+	"CherryPy":                  cherryPyRegex,
+	"Cherokee":                  cherokeeRegex,
+	"CommuniGatePro":            communiGateProRegex,
+	"EdgePrism":                 edgePrismRegex,
+	"Flywheel":                  flywheelRegex,
+	"GoAhead":                   goaheadRegex,
+	"IdeaWebServer":             ideaWebServerRegex,
+	"Indy":                      IndyRegex,
+	"mbedthis":                  mbedthisRegex,
+	"PRTG":                      prtgRegex,
+	"Kangle":                    kangleRegex,
+	"thttpd":                    thttpdRegex,
+}
 
 var serverFieldRegexp = regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 
 var notCleaned = 0
 
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
-	IISMatch := microsoftIISRegex.FindStringSubmatch(agentString)
-	if IISMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleIISServer(IISMatch))
-		return
+	for k, v := range m {
+		match := v.FindStringSubmatch(agentString)
+		if match != nil {
+			version := appendZero(match[1])
+			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: k, Version: version})
+			return
+		}
 	}
-
-	apacheMatch := apacheRegex.FindStringSubmatch(agentString)
-	if apacheMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleApacheServer(apacheMatch))
-		return
-	}
-
-	nginxMatch := nginxRegex.FindStringSubmatch(agentString)
-	if nginxMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleNginxServer(nginxMatch))
-		return
-	}
-
-	lighthttpdMatch := lighthttpdRegex.FindStringSubmatch(agentString)
-	if lighthttpdMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleLighthttpdServer(lighthttpdMatch))
-		return
-	}
-
-	atsMatch := atsRegex.FindStringSubmatch(agentString)
-	if atsMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleATSServer(atsMatch))
-		return
-	}
-
-	boaMatch := boaRegex.FindStringSubmatch(agentString)
-	if boaMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleBOAServer(boaMatch))
-		return
-	}
-
-	allegroSoftwareRomPagerMatch := allegroSoftwareRomPagerRegex.FindStringSubmatch(agentString)
-	if allegroSoftwareRomPagerMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleAllegroSoftwareRomPagerServer(allegroSoftwareRomPagerMatch))
-		return
-	}
-
-	allegroServeMatch := allegroServeRegex.FindStringSubmatch(agentString)
-	if allegroServeMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleAllegroServeServer(allegroServeMatch))
-		return
-	}
-
-	squidMatch := squidRegex.FindStringSubmatch(agentString)
-	if squidMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleSquidServer(squidMatch))
-		return
-	}
-
-	tengineMatch := tengineRegex.FindStringSubmatch(agentString)
-	if tengineMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleTengineServer(tengineMatch))
-		return
-	}
-
-	jettyMatch := jettyRegex.FindStringSubmatch(agentString)
-	if jettyMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleJettyServer(jettyMatch))
-		return
-	}
-
-	romPagerMatch := romPagerRegex.FindStringSubmatch(agentString)
-	if romPagerMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleRomPagerServer(romPagerMatch))
-		return
-	}
-
-	microHttpdMatch := microHttpdRegex.FindStringSubmatch(agentString)
-	if microHttpdMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleMicroHttpdServer(microHttpdMatch))
-		return
-	}
-
-	miniHttpdMatch := miniHttpdRegex.FindStringSubmatch(agentString)
-	if miniHttpdMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleMiniHttpdServer(miniHttpdMatch))
-		return
-	}
-
-	aolServerMatch := aolServerRegex.FindStringSubmatch(agentString)
-	if aolServerMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleAolServerServer(aolServerMatch))
-		return
-	}
-
-	abyssServerMatch := abyssServerRegex.FindStringSubmatch(agentString)
-	if abyssServerMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleAbyssServer(abyssServerMatch))
-		return
-	}
-
-	agranatServerMatch := agranatServerRegex.FindStringSubmatch(agentString)
-	if agranatServerMatch != nil {
-		httpEntry.Agents = append(httpEntry.Agents, handleAgranatServer(agranatServerMatch))
-		return
-	}
-
 	httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
 	notCleaned++
-}
 
-func handleAgranatServer(serverString []string) Server {
-	server := "Agranat-EmWeb"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleAbyssServer(serverString []string) Server {
-	server := "Abyss"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleAolServerServer(serverString []string) Server {
-	server := "AOLServer"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleMiniHttpdServer(serverString []string) Server {
-	server := "mini_httpd"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleMicroHttpdServer(serverString []string) Server {
-	server := "micro_httpd"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleRomPagerServer(serverString []string) Server {
-	server := "RomPager"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleJettyServer(serverString []string) Server {
-	server := "Jetty"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleTengineServer(serverString []string) Server {
-	server := "Tengine"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleSquidServer(serverString []string) Server {
-	server := "Squid"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleAllegroServeServer(serverString []string) Server {
-	server := "AllegroServe"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleAllegroSoftwareRomPagerServer(serverString []string) Server {
-	server := "Allegro-Software-RomPager"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleBOAServer(serverString []string) Server {
-	server := "BOA"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleATSServer(serverString []string) Server {
-	server := "ATS"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleLighthttpdServer(serverString []string) Server {
-	server := "lighthttpd"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-
-func handleIISServer(serverString []string) Server {
-	server := "Microsoft-IIS"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-func handleApacheServer(serverString []string) Server {
-	server := "Apache"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
-}
-func handleNginxServer(serverString []string) Server {
-	server := "nginx"
-	version := appendZero(serverString[1])
-
-	return Server{Agent: server, Version: version}
 }
 
 func appendZero(version string) string {
