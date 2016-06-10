@@ -35,15 +35,26 @@ type RawCensysEntry struct {
 		Http struct {
 			Response struct {
 				Headers struct {
-					Server      []string
-					ServerField string `json:"server"`
+					Server []string
 				}
 			}
 		}
 		Error string
 	}
 }
-
+type RawCensysLegacyEntry struct {
+	BaseEntry
+	Data struct {
+		Http struct {
+			Response struct {
+				Headers struct {
+					Server *string `json:",omitempty"`
+				}
+			}
+		}
+		Error string
+	}
+}
 type HttpVersionResult struct {
 	Started              time.Time
 	Finished             time.Time
@@ -82,18 +93,24 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 	for line := range queue {
 		rawCensysEntry := RawCensysEntry{}
 		json.Unmarshal([]byte(line), &rawCensysEntry)
+		rawCensysLegacyEntry := RawCensysLegacyEntry{}
+		json.Unmarshal([]byte(line), &rawCensysLegacyEntry)
+
 		u := RawZversionEntry{}
 
-		if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" || rawCensysEntry.Data.Http.Response.Headers.ServerField != "" {
+		if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
 			u.BaseEntry = rawCensysEntry.BaseEntry
 			u.Error = rawCensysEntry.Error
-			if rawCensysEntry.Data.Http.Response.Headers.ServerField != "" {
-				u.Data.Read += "\r\n" + "Server: " + rawCensysEntry.Data.Http.Response.Headers.ServerField
-			} else {
-				for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
-					u.Data.Read += "\r\n" + "Server: " + v
-				}
+			for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
+				u.Data.Read += "\r\n" + "Server: " + v
 			}
+			if u.Data.Read != "" {
+				u.Data.Read += "\r\n"
+			}
+		} else if rawCensysLegacyEntry.Data.Http.Response.Headers.Server != nil || rawCensysLegacyEntry.Data.Error != "" {
+			u.BaseEntry = rawCensysLegacyEntry.BaseEntry
+			u.Error = rawCensysLegacyEntry.Error
+			u.Data.Read += "\r\n" + "Server: " + *rawCensysLegacyEntry.Data.Http.Response.Headers.Server
 			if u.Data.Read != "" {
 				u.Data.Read += "\r\n"
 			}
@@ -126,7 +143,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 				}
 				worker.AddToMap(key, hosts)
 			}
-		case len(u.Data.Read) > 0 && len(serverFields) == 0:
+		case (len(u.Data.Read) > 0 && len(serverFields) == 0) || u.Error == "":
 			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: NO_AGENT})
 			worker.AddToMap(NO_AGENT, hosts)
 		default:
