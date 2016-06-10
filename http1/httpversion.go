@@ -35,7 +35,8 @@ type RawCensysEntry struct {
 		Http struct {
 			Response struct {
 				Headers struct {
-					Server []string
+					Server      []string
+					ServerField string `json:"server"`
 				}
 			}
 		}
@@ -83,11 +84,15 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		json.Unmarshal([]byte(line), &rawCensysEntry)
 		u := RawZversionEntry{}
 
-		if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
+		if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" || rawCensysEntry.Data.Http.Response.Headers.ServerField != "" {
 			u.BaseEntry = rawCensysEntry.BaseEntry
 			u.Error = rawCensysEntry.Error
-			for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
-				u.Data.Read += "\r\n" + "Server: " + v
+			if rawCensysEntry.Data.Http.Response.Headers.ServerField != "" {
+				u.Data.Read += "\r\n" + "Server: " + rawCensysEntry.Data.Http.Response.Headers.ServerField
+			} else {
+				for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
+					u.Data.Read += "\r\n" + "Server: " + v
+				}
 			}
 			if u.Data.Read != "" {
 				u.Data.Read += "\r\n"
