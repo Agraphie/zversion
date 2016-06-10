@@ -2,6 +2,7 @@ package worker
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
@@ -53,6 +54,7 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 		}
 		// Close the channel so everyone reading from it knows we're done.
 		close(workQueue)
+		fmt.Printf("File reader done at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 	}()
 
 	//start writer
