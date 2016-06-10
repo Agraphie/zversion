@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/ssh"
 	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
@@ -13,7 +14,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"github.com/agraphie/zversion/ssh"
 )
 
 var (
@@ -25,8 +25,7 @@ var (
 	blacklistPath      = flag.String("blacklist-file", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
 	isHttpScan         = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
 	isHttpAnalysis     = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
-	isSSHAnalysis     = flag.Bool("ssh-analysis", false, "Whether a SSH analysis should be launched")
-
+	isSSHAnalysis      = flag.Bool("ssh-analysis", false, "Whether a SSH analysis should be launched")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
