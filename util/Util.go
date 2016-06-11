@@ -17,7 +17,7 @@ const SSH_ANALYSIS_OUTPUTH_PATH = "ssh/"
 
 const SCAN_OUTPUT_BASE_PATH = "scanResults/"
 const FILE_ACCESS_PERMISSION = 0755
-const CONCURRENCY = 500
+const CONCURRENCY = 8000
 
 func CheckPathExist(path string) bool {
 	_, err := os.Stat(path)

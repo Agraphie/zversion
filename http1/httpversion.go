@@ -150,7 +150,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 			worker.AddToMap(ERROR_KEY, hosts)
 		}
 
-		j, jerr := json.MarshalIndent(httpEntry, "", "  ")
+		j, jerr := json.Marshal(httpEntry)
 		if jerr != nil {
 			fmt.Println("jerr:", jerr.Error())
 		}

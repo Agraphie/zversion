@@ -25,8 +25,8 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 	var hosts = HostsConcurrentSafe{M: make(map[string]int)}
 	// This channel has no buffer, so it only accepts input when something is ready
 	// to take it out. This keeps the reading from getting ahead of the writers.
-	workQueue := make(chan string)
-	writeQueue := make(chan []byte)
+	workQueue := make(chan string, 10000)
+	writeQueue := make(chan []byte, 100000)
 
 	// We need to know when everyone is done so we can exit.
 	complete := make(chan bool)
