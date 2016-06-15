@@ -1,6 +1,9 @@
 package http1
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:(?:Microsoft.)?IIS(?:(?:\s|/)(\d+(?:\.\d)(?:\.[1-])?))?)`
 const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?:-(?:M|B)\d)?))?)`
@@ -114,7 +117,8 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		match := v.FindStringSubmatch(agentString)
 		if match != nil {
 			version := appendZero(match[1])
-			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: k, Version: version})
+			canonicalVersion := makeVersionCanonical(version)
+			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: k, Version: version, CanonicalVersion: canonicalVersion})
 			return
 		}
 	}
@@ -129,4 +133,33 @@ func appendZero(version string) string {
 	}
 
 	return version
+}
+
+func makeVersionCanonical(version string) string {
+	canonicalVersion := ""
+	numbersExtract := regexp.MustCompile(`\d*`)
+	splitVersion := strings.Split(version, ".")
+	for _, v := range splitVersion {
+		currentVersion := numbersExtract.FindStringSubmatch(v)[0]
+
+		switch len(currentVersion) {
+		case 1:
+			canonicalVersion = canonicalVersion + "000" + currentVersion
+		case 2:
+			canonicalVersion = canonicalVersion + "00" + currentVersion
+		case 3:
+			canonicalVersion = canonicalVersion + "0" + currentVersion
+		}
+	}
+
+	switch len(canonicalVersion) {
+	case 4:
+		canonicalVersion = canonicalVersion + "000000000000"
+	case 8:
+		canonicalVersion = canonicalVersion + "00000000"
+	case 12:
+		canonicalVersion = canonicalVersion + "0000"
+	}
+
+	return string(canonicalVersion)
 }
