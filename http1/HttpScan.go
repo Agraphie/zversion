@@ -29,8 +29,9 @@ type RunningHttpScan struct {
 	Finished        time.Time
 }
 type Server struct {
-	Agent   string
-	Version string
+	Agent            string
+	Version          string
+	CanonicalVersion string
 }
 type RawZversionEntry struct {
 	BaseEntry
