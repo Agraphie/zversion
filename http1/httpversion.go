@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
+	"log"
 	"strings"
 	"time"
 )
@@ -91,32 +92,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	for line := range queue {
-		rawCensysEntry := RawCensysEntry{}
-		json.Unmarshal([]byte(line), &rawCensysEntry)
-		rawCensysLegacyEntry := RawCensysLegacyEntry{}
-		json.Unmarshal([]byte(line), &rawCensysLegacyEntry)
-
-		u := RawZversionEntry{}
-
-		if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
-			u.BaseEntry = rawCensysEntry.BaseEntry
-			u.Error = rawCensysEntry.Error
-			for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
-				u.Data.Read += "\r\n" + "Server: " + v
-			}
-			if u.Data.Read != "" {
-				u.Data.Read += "\r\n"
-			}
-		} else if rawCensysLegacyEntry.Data.Http.Response.Headers.Server != nil || rawCensysLegacyEntry.Data.Error != "" {
-			u.BaseEntry = rawCensysLegacyEntry.BaseEntry
-			u.Error = rawCensysLegacyEntry.Error
-			u.Data.Read += "\r\n" + "Server: " + *rawCensysLegacyEntry.Data.Http.Response.Headers.Server
-			if u.Data.Read != "" {
-				u.Data.Read += "\r\n"
-			}
-		} else {
-			json.Unmarshal([]byte(line), &u)
-		}
+		u := assignRawEntry(line)
 
 		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Error: u.Error}
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
@@ -155,7 +131,41 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 			fmt.Println("jerr:", jerr.Error())
 		}
 
+		if len(writeQueue) == cap(writeQueue) {
+			log.Println("Write queue is full! Blocking routine.")
+		}
+
 		writeQueue <- j
 	}
 	complete <- true
+}
+
+func assignRawEntry(rawLine string) RawZversionEntry {
+	rawCensysEntry := RawCensysEntry{}
+	json.Unmarshal([]byte(rawLine), &rawCensysEntry)
+	rawCensysLegacyEntry := RawCensysLegacyEntry{}
+	json.Unmarshal([]byte(rawLine), &rawCensysLegacyEntry)
+	u := RawZversionEntry{}
+
+	if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
+		u.BaseEntry = rawCensysEntry.BaseEntry
+		u.Error = rawCensysEntry.Error
+		for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
+			u.Data.Read += "\r\n" + "Server: " + v
+		}
+		if u.Data.Read != "" {
+			u.Data.Read += "\r\n"
+		}
+	} else if rawCensysLegacyEntry.Data.Http.Response.Headers.Server != nil || rawCensysLegacyEntry.Data.Error != "" {
+		u.BaseEntry = rawCensysLegacyEntry.BaseEntry
+		u.Error = rawCensysLegacyEntry.Error
+		u.Data.Read += "\r\n" + "Server: " + *rawCensysLegacyEntry.Data.Http.Response.Headers.Server
+		if u.Data.Read != "" {
+			u.Data.Read += "\r\n"
+		}
+	} else {
+		json.Unmarshal([]byte(rawLine), &u)
+	}
+
+	return u
 }
