@@ -2,10 +2,11 @@ package worker
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
+	"os/exec"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -33,19 +34,38 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 
 	// Read the lines into the work queue.
 	go func() {
-		file, err := os.Open(inputPath)
-		if err != nil {
-			log.Fatal(err)
+		var scanner *bufio.Scanner
+		isLz4 := regexp.MustCompile(`.*\.lz4`).FindStringSubmatch(inputPath)
+
+		if isLz4 != nil {
+			c1 := exec.Command("lz4", "-dc", inputPath)
+			c1.Stderr = os.Stderr
+			lz4CatStdout, _ := c1.StdoutPipe()
+			scanner = bufio.NewScanner(lz4CatStdout)
+			c1.Start()
+
+			//c1.Wait()
+		} else {
+			file, err := os.Open(inputPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			scanner = bufio.NewScanner(file)
+
+			defer file.Close()
 		}
 
 		// Close when the functin returns
-		defer file.Close()
+		//defer file.Close()
 
-		scanner := bufio.NewScanner(file)
+		//scanner := bufio.NewScanner(file)
 		buf := make([]byte, 0, 64*1024)
 		scanner.Buffer(buf, 1024*1024)
 
 		for scanner.Scan() {
+			if len(workQueue) == cap(workQueue) {
+				log.Println("Work queue is full! Add more worker routines?")
+			}
 			workQueue <- scanner.Text()
 		}
 
@@ -54,7 +74,7 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 		}
 		// Close the channel so everyone reading from it knows we're done.
 		close(workQueue)
-		fmt.Printf("File reader done at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+		log.Printf("File reader done at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 	}()
 
 	//start writer
@@ -71,6 +91,7 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 	}
 
 	close(writeQueue)
+	log.Printf("Workers done at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
 
 	//wait for write queue
 	<-complete
