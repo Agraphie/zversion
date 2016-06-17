@@ -1,8 +1,8 @@
 package http1
 
 import (
+	"github.com/agraphie/zversion/util"
 	"regexp"
-	"strings"
 )
 
 const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:(?:Microsoft.)?IIS(?:(?:\s|/)(\d+(?:\.\d)(?:\.[1-])?))?)`
@@ -73,7 +73,7 @@ var IndyRegex = regexp.MustCompile(INDY_SERVER_REGEX_STRING)
 var mbedthisRegex = regexp.MustCompile(MBEDTHIS_SERVER_REGEX_STRING)
 var prtgRegex = regexp.MustCompile(PRTG_SERVER_REGEX_STRING)
 var kangleRegex = regexp.MustCompile(KANGLE_SERVER_REGEX_STRING)
-var thttpdRegex = regexp.MustCompile(KANGLE_SERVER_REGEX_STRING)
+var thttpdRegex = regexp.MustCompile(THTTPD_SERVER_REGEX_STRING)
 
 var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"Microsoft-IIS": microsoftIISRegex,
@@ -89,7 +89,7 @@ var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"jetty":                     jettyRegex,
 	"RomPager":                  romPagerRegex,
 	"mini_httpd":                miniHttpdRegex,
-	"micro_httpd":               miniHttpdRegex,
+	"micro_httpd":               microHttpdRegex,
 	"AOL Server":                aolServerRegex,
 	"Abyss":                     abyssServerRegex,
 	"Agranat-EmWeb":             agranatServerRegex,
@@ -117,7 +117,7 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		match := v.FindStringSubmatch(agentString)
 		if match != nil {
 			version := appendZero(match[1])
-			canonicalVersion := makeVersionCanonical(version)
+			canonicalVersion := util.MakeVersionCanonical(version)
 			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: k, Version: version, CanonicalVersion: canonicalVersion})
 			return
 		}
@@ -133,33 +133,4 @@ func appendZero(version string) string {
 	}
 
 	return version
-}
-
-func makeVersionCanonical(version string) string {
-	canonicalVersion := ""
-	numbersExtract := regexp.MustCompile(`\d*`)
-	splitVersion := strings.Split(version, ".")
-	for _, v := range splitVersion {
-		currentVersion := numbersExtract.FindStringSubmatch(v)[0]
-
-		switch len(currentVersion) {
-		case 1:
-			canonicalVersion = canonicalVersion + "000" + currentVersion
-		case 2:
-			canonicalVersion = canonicalVersion + "00" + currentVersion
-		case 3:
-			canonicalVersion = canonicalVersion + "0" + currentVersion
-		}
-	}
-
-	switch len(canonicalVersion) {
-	case 4:
-		canonicalVersion = canonicalVersion + "000000000000"
-	case 8:
-		canonicalVersion = canonicalVersion + "00000000"
-	case 12:
-		canonicalVersion = canonicalVersion + "0000"
-	}
-
-	return string(canonicalVersion)
 }

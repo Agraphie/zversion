@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -92,4 +94,33 @@ func WriteStringToFile(wg *sync.WaitGroup, writeQueue chan string, file *os.File
 	}
 
 	wg.Done()
+}
+
+func MakeVersionCanonical(version string) string {
+	canonicalVersion := ""
+	numbersExtract := regexp.MustCompile(`\d*`)
+	splitVersion := strings.Split(version, ".")
+	for _, v := range splitVersion {
+		currentVersion := numbersExtract.FindStringSubmatch(v)[0]
+
+		switch len(currentVersion) {
+		case 1:
+			canonicalVersion = canonicalVersion + "000" + currentVersion
+		case 2:
+			canonicalVersion = canonicalVersion + "00" + currentVersion
+		case 3:
+			canonicalVersion = canonicalVersion + "0" + currentVersion
+		}
+	}
+
+	switch len(canonicalVersion) {
+	case 4:
+		canonicalVersion = canonicalVersion + "000000000000"
+	case 8:
+		canonicalVersion = canonicalVersion + "00000000"
+	case 12:
+		canonicalVersion = canonicalVersion + "0000"
+	}
+
+	return string(canonicalVersion)
 }
