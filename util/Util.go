@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -114,9 +113,6 @@ func MakeVersionCanonical(version string) string {
 			canonicalVersion = canonicalVersion + "0" + currentVersion
 		case 4:
 			canonicalVersion = canonicalVersion + currentVersion
-		default:
-			canonicalVersion = canonicalVersion + currentVersion
-			log.Println("Version longer than 4 digits! Version: " + currentVersion)
 		}
 	}
 
