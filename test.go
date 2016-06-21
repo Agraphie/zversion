@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/http"
 )
 
 func main() {
@@ -28,11 +27,14 @@ func main() {
 	//
 	//log.Println(resp.Header)
 
-	req1, err1 := http.Get("http://69.164.201.157")
-	req1.Body.Close()
-	if err1 != nil {
-		log.Fatalln(err1)
-	}
-	log.Println(req1.Header["Server"])
+	//req1, err1 := http.Get("http://69.164.201.157")
+	//req1.Body.Close()
+	//if err1 != nil {
+	//	log.Fatalln(err1)
+	//}
+	//log.Println(req1.Header["Server"])
 
+	if "1.1.03" < "1.1.18" {
+		log.Println("Good!")
+	}
 }

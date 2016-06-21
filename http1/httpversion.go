@@ -113,14 +113,14 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 			for _, v := range httpEntry.Agents {
 				var key string
 				if v.Version != "" {
-					key = v.Agent + " " + v.Version
+					key = v.Vendor + " " + v.Version
 				} else {
-					key = v.Agent
+					key = v.Vendor
 				}
 				worker.AddToMap(key, hosts)
 			}
 		case (len(u.Data.Read) > 0 && len(serverFields) == 0) || u.Error == "":
-			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: NO_AGENT})
+			httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: NO_AGENT})
 			worker.AddToMap(NO_AGENT, hosts)
 		default:
 			worker.AddToMap(ERROR_KEY, hosts)

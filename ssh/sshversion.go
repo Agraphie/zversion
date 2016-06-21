@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
+	"regexp"
 	"strings"
 	"time"
 )
 
-const NO_AGENT = "Not set"
 const OUTPUT_FILE_NAME = "ssh_version"
+const ERROR_KEY = "Error"
+const SSH_VERSION_INVALID = "SSH protocol version invalid"
 
 type BaseEntry struct {
 	IP        string
@@ -21,9 +23,13 @@ type SSHEntry struct {
 	BaseEntry
 	Raw_banner       string
 	Protocol_version string
-	Software_version string
-	comments         string
+	Comments         string
+	Vendor           string
+	SoftwareVersion  string
+	CanonicalVersion string
+	Error            string
 }
+
 type inputEntry struct {
 	BaseEntry
 	Data struct {
@@ -36,6 +42,7 @@ type inputEntry struct {
 			}
 		}
 	}
+	Error string
 }
 
 type SSHVersionResult struct {
@@ -47,7 +54,7 @@ type SSHVersionResult struct {
 }
 
 func (e SSHEntry) String() string {
-	return fmt.Sprintf("IP: %v, Scanned: %v, Software: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Software_version)
+	return fmt.Sprintf("IP: %v, Scanned: %v, Vendor: %v, Software version: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Vendor, e.SoftwareVersion)
 }
 
 func ParseSSHFile(path string) SSHVersionResult {
@@ -73,19 +80,32 @@ func ParseSSHFile(path string) SSHVersionResult {
 
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	inputEntry := inputEntry{}
+	sshRegexp := regexp.MustCompile(`.*SSH.*`)
 
 	for line := range queue {
 		json.Unmarshal([]byte(line), &inputEntry)
 		sshEntry := transform(inputEntry)
 
-		if sshEntry.Software_version == "" {
-			sshEntry.Software_version = NO_AGENT
+		var key string
+		if sshRegexp.FindStringSubmatch(sshEntry.Raw_banner) != nil && sshEntry.Raw_banner != "" {
+			if inputEntry.Data.SSH.Server_protocol.Software_version != "" {
+				cleanAndAssign(inputEntry.Data.SSH.Server_protocol.Software_version, &sshEntry)
+			} else {
+				cleanAndAssign(sshEntry.Raw_banner, &sshEntry)
+			}
+
+			if sshEntry.SoftwareVersion != "" {
+				key = sshEntry.Vendor + " " + sshEntry.SoftwareVersion
+			} else {
+				key = sshEntry.Vendor
+			}
+		} else {
+			key = ERROR_KEY
 		}
-		key := sshEntry.Software_version
 
 		worker.AddToMap(key, hosts)
 
-		j, jerr := json.MarshalIndent(sshEntry, "", "  ")
+		j, jerr := json.Marshal(sshEntry)
 		if jerr != nil {
 			fmt.Println("jerr:", jerr.Error())
 		}
@@ -96,11 +116,11 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 func transform(inputEntry inputEntry) SSHEntry {
 	sshEntry := SSHEntry{
-		Software_version: inputEntry.Data.SSH.Server_protocol.Software_version,
 		Protocol_version: inputEntry.Data.SSH.Server_protocol.Protocol_version,
-		comments:         inputEntry.Data.SSH.Server_protocol.comments,
+		Comments:         inputEntry.Data.SSH.Server_protocol.comments,
 		Raw_banner:       inputEntry.Data.SSH.Server_protocol.Raw_banner,
-		BaseEntry:        inputEntry.BaseEntry}
+		BaseEntry:        inputEntry.BaseEntry,
+		Error:            inputEntry.Error}
 
 	return sshEntry
 }

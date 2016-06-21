@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -100,6 +101,7 @@ func MakeVersionCanonical(version string) string {
 	canonicalVersion := ""
 	numbersExtract := regexp.MustCompile(`\d*`)
 	splitVersion := strings.Split(version, ".")
+
 	for _, v := range splitVersion {
 		currentVersion := numbersExtract.FindStringSubmatch(v)[0]
 
@@ -110,6 +112,11 @@ func MakeVersionCanonical(version string) string {
 			canonicalVersion = canonicalVersion + "00" + currentVersion
 		case 3:
 			canonicalVersion = canonicalVersion + "0" + currentVersion
+		case 4:
+			canonicalVersion = canonicalVersion + currentVersion
+		default:
+			canonicalVersion = canonicalVersion + currentVersion
+			log.Println("Version longer than 4 digits! Version: " + currentVersion)
 		}
 	}
 

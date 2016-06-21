@@ -118,11 +118,11 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		if match != nil {
 			version := appendZero(match[1])
 			canonicalVersion := util.MakeVersionCanonical(version)
-			httpEntry.Agents = append(httpEntry.Agents, Server{Agent: k, Version: version, CanonicalVersion: canonicalVersion})
+			httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: k, Version: version, CanonicalVersion: canonicalVersion})
 			return
 		}
 	}
-	httpEntry.Agents = append(httpEntry.Agents, Server{Agent: agentString})
+	httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: agentString})
 	notCleaned++
 
 }
