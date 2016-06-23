@@ -32,7 +32,14 @@ func cleanAndAssignCMS(rawBody string, xContentEncodedByField []string, httpEntr
 }
 
 func assignCMS(match []string, httpEntry *ZversionEntry) {
-	vendor := strings.Title(match[1])
+	var vendor string
+	if strings.EqualFold(match[1], "WordPress") {
+		vendor = "WordPress"
+	} else if strings.EqualFold(match[1], "Joomla") {
+		vendor = "Joomla"
+	} else if strings.EqualFold(match[1], "Drupal") {
+		vendor = "Drupal"
+	}
 	version := match[2]
 	canonicalVersion := ""
 	if version != "" {
