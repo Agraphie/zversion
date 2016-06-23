@@ -116,7 +116,7 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	for k, v := range m {
 		match := v.FindStringSubmatch(agentString)
 		if match != nil {
-			version := appendZero(match[1])
+			version := util.AppendZeroToVersion(match[1])
 			canonicalVersion := util.MakeVersionCanonical(version)
 			httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: k, Version: version, CanonicalVersion: canonicalVersion})
 			return
@@ -125,12 +125,4 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: agentString})
 	notCleaned++
 
-}
-
-func appendZero(version string) string {
-	if len(version) == 1 {
-		version = version + ".0"
-	}
-
-	return version
 }

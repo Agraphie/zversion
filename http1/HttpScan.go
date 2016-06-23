@@ -28,11 +28,6 @@ type RunningHttpScan struct {
 	Started         time.Time
 	Finished        time.Time
 }
-type Server struct {
-	Vendor           string
-	Version          string
-	CanonicalVersion string
-}
 
 type RawZversionEntry struct {
 	BaseEntry
@@ -40,6 +35,7 @@ type RawZversionEntry struct {
 		Read string `json:",omitempty"`
 	} `json:",omitempty"`
 	Error string
+	Body  string
 }
 
 /**

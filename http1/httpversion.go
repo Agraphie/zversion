@@ -21,12 +21,27 @@ type BaseEntry struct {
 	Timestamp time.Time
 	Error     string
 }
+type Server struct {
+	Vendor           string
+	Version          string
+	CanonicalVersion string
+}
+type CMS struct {
+	Vendor           string
+	Version          string
+	CanonicalVersion string
+}
 
 type ZversionEntry struct {
 	BaseEntry
 
 	Agents []Server
 	Error  string
+	CMS    []CMS
+}
+type unknownHeaderField struct {
+	Key   string
+	Value []string
 }
 
 type RawCensysEntry struct {
@@ -36,8 +51,10 @@ type RawCensysEntry struct {
 		Http struct {
 			Response struct {
 				Headers struct {
-					Server []string
+					Server  []string
+					Unknown []unknownHeaderField
 				}
+				Body string
 			}
 		}
 		Error string
@@ -49,13 +66,16 @@ type RawCensysLegacyEntry struct {
 		Http struct {
 			Response struct {
 				Headers struct {
-					Server *string `json:",omitempty"`
+					Server  *string `json:",omitempty"`
+					Unknown []unknownHeaderField
 				}
+				Body string
 			}
 		}
 		Error string
 	}
 }
+
 type HttpVersionResult struct {
 	Started              time.Time
 	Finished             time.Time
@@ -92,10 +112,12 @@ func ParseHttpFile(path string) HttpVersionResult {
 
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	for line := range queue {
-		u := assignRawEntry(line)
-
+		u, xContentHeaderField := assignRawEntry(line)
 		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Error: u.Error}
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
+
+		//assign CMS if available
+		cleanAndAssignCMS(u.Body, xContentHeaderField, &httpEntry)
 
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
@@ -140,32 +162,50 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 	complete <- true
 }
 
-func assignRawEntry(rawLine string) RawZversionEntry {
+func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 	rawCensysEntry := RawCensysEntry{}
 	json.Unmarshal([]byte(rawLine), &rawCensysEntry)
 	rawCensysLegacyEntry := RawCensysLegacyEntry{}
 	json.Unmarshal([]byte(rawLine), &rawCensysLegacyEntry)
 	u := RawZversionEntry{}
+	var xContentEncodedBy []string
 
 	if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
 		u.BaseEntry = rawCensysEntry.BaseEntry
 		u.Error = rawCensysEntry.Error
+		u.Body = rawCensysEntry.Data.Http.Response.Body
+
 		for _, v := range rawCensysEntry.Data.Http.Response.Headers.Server {
 			u.Data.Read += "\r\n" + "Server: " + v
 		}
 		if u.Data.Read != "" {
 			u.Data.Read += "\r\n"
 		}
+		xContentEncodedBy = findXContentEncodedByField(rawCensysEntry.Data.Http.Response.Headers.Unknown)
 	} else if rawCensysLegacyEntry.Data.Http.Response.Headers.Server != nil || rawCensysLegacyEntry.Data.Error != "" {
 		u.BaseEntry = rawCensysLegacyEntry.BaseEntry
 		u.Error = rawCensysLegacyEntry.Error
+		u.Body = rawCensysLegacyEntry.Data.Http.Response.Body
 		u.Data.Read += "\r\n" + "Server: " + *rawCensysLegacyEntry.Data.Http.Response.Headers.Server
 		if u.Data.Read != "" {
 			u.Data.Read += "\r\n"
 		}
+		xContentEncodedBy = findXContentEncodedByField(rawCensysEntry.Data.Http.Response.Headers.Unknown)
 	} else {
+		//TODO: does not have an x_content_encoded_by header field!
 		json.Unmarshal([]byte(rawLine), &u)
 	}
 
-	return u
+	return u, xContentEncodedBy
+}
+
+func findXContentEncodedByField(unknownHeaders []unknownHeaderField) []string {
+	var xContentEncodedBy []string
+	for _, v := range unknownHeaders {
+		if v.Key == "x_content_encoded_by" {
+			xContentEncodedBy = v.Value
+		}
+	}
+
+	return xContentEncodedBy
 }

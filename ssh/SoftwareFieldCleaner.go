@@ -46,7 +46,7 @@ func cleanAndAssign(software string, sshEntry *SSHEntry) {
 	for k, v := range m {
 		match := v.FindStringSubmatch(software)
 		if match != nil {
-			version := appendZero(match[1])
+			version := util.AppendZeroToVersion(match[1])
 			sshEntry.Vendor = k
 			sshEntry.CanonicalVersion = util.MakeVersionCanonical(version)
 			sshEntry.SoftwareVersion = version
@@ -56,12 +56,4 @@ func cleanAndAssign(software string, sshEntry *SSHEntry) {
 	}
 	sshEntry.Vendor = software
 	notCleaned++
-}
-
-func appendZero(version string) string {
-	if len(version) == 1 {
-		version = version + ".0"
-	}
-
-	return version
 }

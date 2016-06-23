@@ -127,3 +127,11 @@ func MakeVersionCanonical(version string) string {
 
 	return string(canonicalVersion)
 }
+
+func AppendZeroToVersion(version string) string {
+	if len(version) == 1 {
+		version = version + ".0"
+	}
+
+	return version
+}
