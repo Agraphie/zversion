@@ -29,7 +29,7 @@ type SSHEntry struct {
 	CanonicalVersion string
 	Error            string
 	Country          string
-	AS               string
+	ASId             string
 	ASOwner          string
 }
 
@@ -70,6 +70,7 @@ func ParseSSHFile(path string) SSHVersionResult {
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
 	util.GeoUtilInitialise()
+	util.ASUtilInitialise()
 
 	hosts := worker.ParseFile(path, outputFile, workOnLine)
 
@@ -93,6 +94,8 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		//Assign country
 		sshEntry.Country = util.FindCountry(sshEntry.IP)
 
+		//Assign AS
+		sshEntry.ASId, sshEntry.ASOwner = util.FindAS(sshEntry.IP)
 		var key string
 		if sshRegexp.FindStringSubmatch(sshEntry.Raw_banner) != nil && sshEntry.Raw_banner != "" {
 			if inputEntry.Data.SSH.Server_protocol.Software_version != "" {
