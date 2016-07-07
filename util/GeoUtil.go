@@ -15,8 +15,8 @@ import (
 var maxMindGeoDB []geoLiteEntry
 
 const GEODB_FOLDER = "geodb"
-const MAXMIND_DB_ZIP_FILE_NAME = "GeoIPCountryCSV.zip"
-const MAXMIND_DB_FILE_NAME = "GeoIPCountryWhois.csv"
+const MAXMIND_GEO_DB_ZIP_FILE_NAME = "GeoIPCountryCSV.zip"
+const MAXMIND_GEO_DB_FILE_NAME = "GeoIPCountryWhois.csv"
 
 const MAXMIND_GEOIP_URL = "http://geolite.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip"
 
@@ -31,17 +31,17 @@ func GeoUtilInitialise() {
 		err := os.MkdirAll(GEODB_FOLDER, FILE_ACCESS_PERMISSION)
 		Check(err)
 	}
-	if !CheckPathExist(GEODB_FOLDER + "/" + MAXMIND_DB_FILE_NAME) {
+	if !CheckPathExist(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_FILE_NAME) {
 		downloadMaxMindGeoLite()
-		Unzip(GEODB_FOLDER+"/"+MAXMIND_DB_ZIP_FILE_NAME, GEODB_FOLDER)
-		os.Remove(GEODB_FOLDER + "/" + MAXMIND_DB_ZIP_FILE_NAME)
+		Unzip(GEODB_FOLDER+"/"+MAXMIND_GEO_DB_ZIP_FILE_NAME, GEODB_FOLDER)
+		os.Remove(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_ZIP_FILE_NAME)
 	} else if firstTuesdayOfMonth() {
-		os.Remove(GEODB_FOLDER + "/" + MAXMIND_DB_FILE_NAME)
+		os.Remove(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_FILE_NAME)
 		downloadMaxMindGeoLite()
-		Unzip(GEODB_FOLDER+"/"+MAXMIND_DB_ZIP_FILE_NAME, GEODB_FOLDER)
-		os.Remove(GEODB_FOLDER + "/" + MAXMIND_DB_ZIP_FILE_NAME)
+		Unzip(GEODB_FOLDER+"/"+MAXMIND_GEO_DB_ZIP_FILE_NAME, GEODB_FOLDER)
+		os.Remove(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_ZIP_FILE_NAME)
 	}
-	readInMaxMindGeoDBCSV(GEODB_FOLDER + "/" + MAXMIND_DB_FILE_NAME)
+	readInMaxMindGeoDBCSV(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_FILE_NAME)
 }
 
 func FindCountry(ip string) string {
@@ -89,7 +89,7 @@ func readInMaxMindGeoDBCSV(filePath string) {
 }
 
 func downloadMaxMindGeoLite() {
-	out, err := os.Create(GEODB_FOLDER + "/" + MAXMIND_DB_ZIP_FILE_NAME)
+	out, err := os.Create(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_ZIP_FILE_NAME)
 	defer out.Close()
 	Check(err)
 
