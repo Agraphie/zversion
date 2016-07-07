@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -51,7 +52,7 @@ func FindCountry(ip string) string {
 	countryCode := "Not found"
 	ipToCheck := net.ParseIP(ip)
 	if ipToCheck.To4() == nil {
-		log.Printf("%v is not an IPv4 address\n", ipToCheck)
+		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ipToCheck)))
 	}
 	for _, v := range maxMindGeoDB {
 		if bytes.Compare(ipToCheck, v.startIP) >= 0 && bytes.Compare(ipToCheck, v.endIp) <= 0 {
