@@ -35,10 +35,14 @@ type CMS struct {
 type ZversionEntry struct {
 	BaseEntry
 
-	Agents []Server
-	Error  string
-	CMS    []CMS
+	Agents  []Server
+	Error   string
+	CMS     []CMS
+	Country string
+	AS      string
+	ASOwner string
 }
+
 type unknownHeaderField struct {
 	Key   string
 	Value []string
@@ -97,7 +101,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
-
+	util.GeoUtilInitialise()
 	hosts := worker.ParseFile(path, outputFile, workOnLine)
 	httpVersionResult.ResultAmount = hosts.M
 	httpVersionResult.Finished = time.Now()
