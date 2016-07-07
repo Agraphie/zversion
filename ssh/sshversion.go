@@ -28,6 +28,9 @@ type SSHEntry struct {
 	SoftwareVersion  string
 	CanonicalVersion string
 	Error            string
+	Country          string
+	AS               string
+	ASOwner          string
 }
 
 type inputEntry struct {
@@ -66,6 +69,8 @@ func ParseSSHFile(path string) SSHVersionResult {
 
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
+	util.GeoUtilInitialise()
+
 	hosts := worker.ParseFile(path, outputFile, workOnLine)
 
 	sshVersionResult.ResultAmount = hosts.M
@@ -85,6 +90,8 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 	for line := range queue {
 		json.Unmarshal([]byte(line), &inputEntry)
 		sshEntry := transform(inputEntry)
+		//Assign country
+		sshEntry.Country = util.FindCountry(sshEntry.IP)
 
 		var key string
 		if sshRegexp.FindStringSubmatch(sshEntry.Raw_banner) != nil && sshEntry.Raw_banner != "" {
