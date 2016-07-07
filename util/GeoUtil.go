@@ -45,6 +45,9 @@ func GeoUtilInitialise() {
 }
 
 func FindCountry(ip string) string {
+	if len(maxMindGeoDB) == 0 {
+		panic(errors.New("GeoDB(s) have not been initialised! Initialise first."))
+	}
 	countryCode := "Not found"
 	ipToCheck := net.ParseIP(ip)
 	if ipToCheck.To4() == nil {
