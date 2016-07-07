@@ -1,12 +1,18 @@
 package util
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/csv"
+	"errors"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"os"
 )
 
-var geoDB []geoLiteEntry
+var maxMindGeoDB []geoLiteEntry
 
 const GEODB_FOLDER = "geodb"
 const MAXMIND_DB_ZIP_FILE_NAME = "GeoIPCountryCSV.zip"
@@ -15,8 +21,8 @@ const MAXMIND_DB_FILE_NAME = "GeoIPCountryWhois.csv"
 const MAXMIND_GEOIP_URL = "http://geolite.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip"
 
 type geoLiteEntry struct {
-	startIP     int
-	endIp       int
+	startIP     net.IP
+	endIp       net.IP
 	countryCode string
 }
 
@@ -35,10 +41,48 @@ func GeoUtilInitialise() {
 		Unzip(GEODB_FOLDER+"/"+MAXMIND_DB_ZIP_FILE_NAME, GEODB_FOLDER)
 		os.Remove(GEODB_FOLDER + "/" + MAXMIND_DB_ZIP_FILE_NAME)
 	}
+	readInMaxMindGeoDBCSV(GEODB_FOLDER + "/" + MAXMIND_DB_FILE_NAME)
 }
 
-func findCountry(IP string) {
+func findCountry(ip string) string {
+	countryCode := "Not found"
+	ipToCheck := net.ParseIP(ip)
+	if ipToCheck.To4() == nil {
+		log.Printf("%v is not an IPv4 address\n", ipToCheck)
+	}
+	for _, v := range maxMindGeoDB {
+		if bytes.Compare(ipToCheck, v.startIP) >= 0 && bytes.Compare(ipToCheck, v.endIp) <= 0 {
+			countryCode = v.countryCode
+			break
+		}
+	}
+	return countryCode
+}
 
+func readInMaxMindGeoDBCSV(filePath string) {
+	f, err := os.Open(filePath)
+	defer f.Close()
+	Check(err)
+	reader := csv.NewReader(bufio.NewReader(f))
+	for {
+		record, err := reader.Read()
+		// Stop at EOF.
+		if err == io.EOF {
+			break
+		}
+		startIP := net.ParseIP(record[0])
+		endIP := net.ParseIP(record[1])
+		if startIP.To4() == nil {
+			log.Printf("%v is not an IPv4 address\n", startIP)
+			panic(errors.New("Wrong MaxMind GeoDB CSV file format!"))
+		} else if endIP.To4() == nil {
+			log.Printf("%v is not an IPv4 address\n", endIP)
+			panic(errors.New("Wrong MaxMind GeoDB CSV file format!"))
+		}
+
+		entry := geoLiteEntry{startIP: startIP, endIp: endIP, countryCode: record[4]}
+		maxMindGeoDB = append(maxMindGeoDB, entry)
+	}
 }
 
 func downloadMaxMindGeoLite() {
