@@ -39,7 +39,7 @@ type ZversionEntry struct {
 	Error   string
 	CMS     []CMS
 	Country string
-	AS      string
+	ASId    string
 	ASOwner string
 }
 
@@ -102,6 +102,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
 	util.GeoUtilInitialise()
+	util.ASUtilInitialise()
 	hosts := worker.ParseFile(path, outputFile, workOnLine)
 	httpVersionResult.ResultAmount = hosts.M
 	httpVersionResult.Finished = time.Now()
@@ -125,6 +126,8 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		//Assign country
 		httpEntry.Country = util.FindCountry(httpEntry.IP)
 
+		//Assign AS
+		httpEntry.ASId, httpEntry.ASOwner = util.FindAS(httpEntry.IP)
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
 		switch {
