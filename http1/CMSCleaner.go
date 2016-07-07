@@ -46,5 +46,12 @@ func assignCMS(match []string, httpEntry *ZversionEntry) {
 		version = util.AppendZeroToVersion(version)
 		canonicalVersion = util.MakeVersionCanonical(version)
 	}
-	httpEntry.CMS = append(httpEntry.CMS, CMS{Vendor: vendor, Version: version, CanonicalVersion: canonicalVersion})
+
+	newCMS := CMS{Vendor: vendor, Version: version, CanonicalVersion: canonicalVersion}
+	for _, v := range httpEntry.CMS {
+		if v == newCMS {
+			return
+		}
+	}
+	httpEntry.CMS = append(httpEntry.CMS, newCMS)
 }
