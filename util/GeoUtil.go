@@ -44,7 +44,7 @@ func GeoUtilInitialise() {
 	readInMaxMindGeoDBCSV(GEODB_FOLDER + "/" + MAXMIND_DB_FILE_NAME)
 }
 
-func findCountry(ip string) string {
+func FindCountry(ip string) string {
 	countryCode := "Not found"
 	ipToCheck := net.ParseIP(ip)
 	if ipToCheck.To4() == nil {

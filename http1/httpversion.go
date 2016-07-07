@@ -122,6 +122,8 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 		//assign CMS if available
 		cleanAndAssignCMS(u.Body, xContentHeaderField, &httpEntry)
+		//Assign country
+		httpEntry.Country = util.FindCountry(httpEntry.IP)
 
 		//This caused a bug where "Internal Server Error" would also contain "Server" and thus this line
 		//was assumed to contain the server version --> fixed to contain "Server:"
