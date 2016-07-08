@@ -163,10 +163,11 @@ func Unzip(src, dest string) error {
 		}
 	}()
 
-	os.MkdirAll(dest, 0755)
+	os.MkdirAll(dest, FILE_ACCESS_PERMISSION)
 
 	// Closure to address file descriptors issue with all the deferred .Close() methods
 	extractAndWriteFile := func(f *zip.File) error {
+
 		rc, err := f.Open()
 		if err != nil {
 			return err
@@ -177,7 +178,7 @@ func Unzip(src, dest string) error {
 			}
 		}()
 
-		path := filepath.Join(dest, f.Name)
+		path := filepath.Join(dest, f.FileInfo().Name())
 
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(path, f.Mode())

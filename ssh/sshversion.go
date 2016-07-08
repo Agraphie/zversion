@@ -28,7 +28,7 @@ type SSHEntry struct {
 	SoftwareVersion  string
 	CanonicalVersion string
 	Error            string
-	Country          string
+	GeoData          util.GeoData
 	ASId             string
 	ASOwner          string
 }
@@ -92,7 +92,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		json.Unmarshal([]byte(line), &inputEntry)
 		sshEntry := transform(inputEntry)
 		//Assign country
-		sshEntry.Country = util.FindCountry(sshEntry.IP)
+		sshEntry.GeoData = util.FindGeoData(sshEntry.IP)
 
 		//Assign AS
 		sshEntry.ASId, sshEntry.ASOwner = util.FindAS(sshEntry.IP)

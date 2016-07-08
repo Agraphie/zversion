@@ -38,7 +38,7 @@ type ZversionEntry struct {
 	Agents  []Server
 	Error   string
 	CMS     []CMS
-	Country string
+	GeoData util.GeoData
 	ASId    string
 	ASOwner string
 }
@@ -124,7 +124,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		//assign CMS if available
 		cleanAndAssignCMS(u.Body, xContentHeaderField, &httpEntry)
 		//Assign country
-		httpEntry.Country = util.FindCountry(httpEntry.IP)
+		httpEntry.GeoData = util.FindGeoData(httpEntry.IP)
 
 		//Assign AS
 		httpEntry.ASId, httpEntry.ASOwner = util.FindAS(httpEntry.IP)
