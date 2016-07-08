@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -10,9 +11,22 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 var maxMindGeoDB []geoLiteEntry
+
+type Asc []geoLiteEntry
+
+func (s Asc) Len() int {
+	return len(s)
+}
+func (s Asc) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s Asc) Less(i, j int) bool {
+	return bytes.Compare(s[i].network.IP, s[j].network.IP) == -1
+}
 
 const GEODB_FOLDER = "geodb"
 const MAXMIND_GEO_DB_ZIP_FILE_NAME = "GeoLite2-Country-CSV.zip"
@@ -61,6 +75,7 @@ func GeoUtilInitialise() {
 		maxMindCleanUp()
 	}
 	readInMaxMindGeoDBCSV()
+	sort.Sort(Asc(maxMindGeoDB))
 }
 
 func maxMindCleanUp() {
