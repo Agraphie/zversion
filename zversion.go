@@ -63,14 +63,14 @@ func main() {
 		}
 	} else if *isHttpAnalysis {
 		if util.CheckPathExist(*analysisInputPath) {
-			fmt.Printf("Processing file: %s\n", *analysisInputPath)
+			log.Printf("Processing file: %s\n", *analysisInputPath)
 			http1.ParseHttpFile(*analysisInputPath)
 		} else {
 			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
 		}
 	} else if *isSSHAnalysis {
 		if util.CheckPathExist(*analysisInputPath) {
-			fmt.Printf("Processing file: %s\n", *analysisInputPath)
+			log.Printf("Processing file: %s\n", *analysisInputPath)
 			ssh.ParseSSHFile(*analysisInputPath)
 		} else {
 			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
