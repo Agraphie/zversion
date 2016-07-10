@@ -1,0 +1,22 @@
+#!/bin/bash
+printf $1
+printf "\n"
+printf "'1.3.15 - 1.5.11'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0001000300150000" and .CanonicalVersion <= "0001000500110000" and .CanonicalVersion != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'1.5.10'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion == "0001000500100000" and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'1.3.9 - 1.4.0'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0001000300090000" and .CanonicalVersion <= "0001000400000000" and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'1.1.3 - 1.1.18, 1.0.7 - 1.0.14'; `jq '.Agents[] | select(.Agent=="nginx" and ((.CanonicalVersion >= "0001000100030000" and .CanonicalVersion <= "0001000100180000") or (.CanonicalVersion >= "0001000000070000" and .CanonicalVersion <= "0001000000140000")) and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'0.1.0 - 1.1.16'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0001000100160000" and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'0.1.0 - 0.8.22'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0000000800220000" and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'0.1.0 - 0.8.14'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0000000800140000" and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+printf "'0.1.0 - 0.8.13'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0000000800130000" and .Version != "") | .Version' $1 | wc -l`"
+printf "\n"
+
+printf "Total: `jq '.Agents[] | select(.Agent=="nginx") | .Agent' $1 | wc -l`"
+printf "\n"
