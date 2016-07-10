@@ -115,7 +115,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	log.Println("Cleaning finished")
 	log.Printf("Not cleaned: %d\n", notCleaned)
 
-	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME), outputFolderPath)
+	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath)
 
 	return httpVersionResult
 }
