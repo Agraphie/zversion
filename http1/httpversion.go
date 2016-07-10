@@ -95,7 +95,7 @@ func (e ZversionEntry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
-	log.Println("Started")
+	log.Println("Start cleaning...")
 
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
@@ -115,7 +115,9 @@ func ParseHttpFile(path string) HttpVersionResult {
 	log.Println("Cleaning finished")
 	log.Printf("Not cleaned: %d\n", notCleaned)
 
+	log.Println("Start analysis...")
 	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath)
+	log.Println("Analysis finished")
 
 	return httpVersionResult
 }

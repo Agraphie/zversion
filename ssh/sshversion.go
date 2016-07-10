@@ -3,8 +3,11 @@ package ssh
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/agraphie/zversion/analysis"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
+	"log"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -61,11 +64,12 @@ func (e SSHEntry) String() string {
 }
 
 func ParseSSHFile(path string) SSHVersionResult {
-	fmt.Printf("Started at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+	log.Println("Start cleaning...")
 
-	inputFileNameSplit := strings.Split(path, "/")
+	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	outputFile := util.CreateOutputJsonFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
+	outputFolderPath := filepath.Join(util.ANALYSIS_OUTPUT_BASE_PATH, util.SSH_ANALYSIS_OUTPUTH_PATH, inputFileName)
+	outputFile := util.CreateOutputJsonFile(outputFolderPath, OUTPUT_FILE_NAME)
 
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
@@ -78,8 +82,13 @@ func ParseSSHFile(path string) SSHVersionResult {
 	sshVersionResult.Finished = time.Now()
 
 	sshVersionResult.ProcessedZgrabOutput = path
-	util.WriteSummaryFileAsJson(hosts.M, util.ANALYSIS_OUTPUT_BASE_PATH+util.SSH_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
-	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, OUTPUT_FILE_NAME)
+	log.Println("Cleaning finished")
+	log.Printf("Not cleaned: %d\n", notCleaned)
+
+	log.Println("Start analysis...")
+	analysis.RunSSHAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath)
+	log.Println("Analysis finished")
 
 	return sshVersionResult
 }
