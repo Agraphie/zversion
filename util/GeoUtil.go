@@ -62,15 +62,17 @@ func GeoUtilInitialise() {
 		err := os.MkdirAll(GEODB_FOLDER, FILE_ACCESS_PERMISSION)
 		Check(err)
 	}
-	if !CheckPathExist(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_FILE_NAME) {
+	geoFileFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_FILE_NAME)
+	geoFileZipFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_ZIP_FILE_NAME)
+	if !CheckPathExist(geoFileFilePath) {
 		downloadMaxMindGeoLite()
-		err := Unzip(GEODB_FOLDER+"/"+MAXMIND_GEO_DB_ZIP_FILE_NAME, GEODB_FOLDER)
+		err := Unzip(geoFileZipFilePath, GEODB_FOLDER)
 		Check(err)
 		maxMindCleanUp()
 	} else if firstTuesdayOfMonth() {
-		os.Remove(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_FILE_NAME)
+		os.Remove(geoFileFilePath)
 		downloadMaxMindGeoLite()
-		err := Unzip(GEODB_FOLDER+"/"+MAXMIND_GEO_DB_ZIP_FILE_NAME, GEODB_FOLDER)
+		err := Unzip(geoFileZipFilePath, GEODB_FOLDER)
 		Check(err)
 		maxMindCleanUp()
 	}
@@ -79,7 +81,8 @@ func GeoUtilInitialise() {
 }
 
 func maxMindCleanUp() {
-	os.Remove(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_ZIP_FILE_NAME)
+	geoFileZipFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_ZIP_FILE_NAME)
+	os.Remove(geoFileZipFilePath)
 	d, err := os.Open(GEODB_FOLDER)
 	Check(err)
 
@@ -123,7 +126,9 @@ func FindGeoData(ip string) GeoData {
 
 func readInMaxMindGeoDBCSV() {
 	readInCountryCodes()
-	dbCsv, err := os.Open(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_FILE_NAME)
+	geoFileFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_FILE_NAME)
+
+	dbCsv, err := os.Open(geoFileFilePath)
 	defer dbCsv.Close()
 	Check(err)
 
@@ -148,7 +153,8 @@ func readInMaxMindGeoDBCSV() {
 }
 
 func readInCountryCodes() {
-	dbCodesCsv, err1 := os.Open(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_COUNTRY_CODES_FILE_NAME)
+	geoFileCountryFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_COUNTRY_CODES_FILE_NAME)
+	dbCodesCsv, err1 := os.Open(geoFileCountryFilePath)
 	defer dbCodesCsv.Close()
 	Check(err1)
 	reader := csv.NewReader(bufio.NewReader(dbCodesCsv))
@@ -164,8 +170,11 @@ func readInCountryCodes() {
 		countries[record[0]] = country
 	}
 }
+
 func downloadMaxMindGeoLite() {
-	out, err := os.Create(GEODB_FOLDER + "/" + MAXMIND_GEO_DB_ZIP_FILE_NAME)
+	geoFileZipFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_ZIP_FILE_NAME)
+
+	out, err := os.Create(geoFileZipFilePath)
 	defer out.Close()
 	Check(err)
 

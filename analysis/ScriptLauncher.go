@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -41,7 +42,7 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 		if !f.IsDir() {
 			scriptWaitGroup.Add(1)
 			scriptPath := filepath.Join(scriptFolderPath, f.Name())
-			launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, *scriptWaitGroup)
+			go launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
 		}
 	}
 	scriptWaitGroup.Wait()
@@ -52,12 +53,15 @@ func launchScript(scriptPath string, scriptInputFilePath string, scriptOutputFol
 		cmd := exec.Command(scriptPath, scriptInputFilePath)
 
 		outputFileName := determineOutputFileName(scriptPath)
-		if outputFileName == nil {
-			outputFileName = scriptPath + ".out"
+		if outputFileName == "" {
+			scriptFileNameSplit := strings.Split(scriptPath, string(filepath.Separator))
+			scriptFileName := scriptFileNameSplit[len(scriptFileNameSplit)-1]
+			outputFileName = scriptFileName + ".out"
 		}
 
 		// open the out file for writing
-		outfile, err := os.Create(filepath.Join(scriptInputFilePath, outputFileName))
+		outfile, err := os.Create(filepath.Join(scriptOutputFolderPath, outputFileName))
+
 		if err != nil {
 			util.Check(err)
 		}

@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const HTTP_SCAN_OUTPUTH_PATH = "http/"
+const HTTP_SCAN_OUTPUTH_PATH = "http"
 const HTTP_SCAN_DEFAULT_PORT = "80"
 const HTTP_SCAN_DEFAULT_SCAN_TARGETS = "10000"
 const HTTP_SCAN_DEFAULT_PPS = "100000"

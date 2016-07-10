@@ -74,7 +74,7 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 		}
 		// Close the channel so everyone reading from it knows we're done.
 		close(workQueue)
-		log.Printf("File reader done at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+		log.Println("File reader done")
 	}()
 
 	//start writer
@@ -91,8 +91,7 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 	}
 
 	close(writeQueue)
-	log.Printf("Workers done at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
-
+	log.Println("Workers done")
 	//wait for write queue
 	<-complete
 

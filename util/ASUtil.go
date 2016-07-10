@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,17 +39,19 @@ func ASUtilInitialise() {
 		err := os.MkdirAll(AS_FOLDER, FILE_ACCESS_PERMISSION)
 		Check(err)
 	}
-	if !CheckPathExist(AS_FOLDER + "/" + MAXMIND_AS_DB_FILE_NAME) {
+	maxmindAsDBFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_FILE_NAME)
+	maxmindAsDBZipFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_ZIP_FILE_NAME)
+	if !CheckPathExist(maxmindAsDBFile) {
 		downloadMaxMindASLite()
-		Unzip(AS_FOLDER+"/"+MAXMIND_AS_DB_ZIP_FILE_NAME, AS_FOLDER)
-		os.Remove(AS_FOLDER + "/" + MAXMIND_AS_DB_ZIP_FILE_NAME)
+		Unzip(maxmindAsDBZipFile, AS_FOLDER)
+		os.Remove(maxmindAsDBZipFile)
 	} else if firstTuesdayOfMonth() {
-		os.Remove(AS_FOLDER + "/" + MAXMIND_AS_DB_FILE_NAME)
+		os.Remove(maxmindAsDBFile)
 		downloadMaxMindASLite()
-		Unzip(AS_FOLDER+"/"+MAXMIND_AS_DB_ZIP_FILE_NAME, AS_FOLDER)
-		os.Remove(AS_FOLDER + "/" + MAXMIND_AS_DB_ZIP_FILE_NAME)
+		Unzip(maxmindAsDBZipFile, AS_FOLDER)
+		os.Remove(maxmindAsDBZipFile)
 	}
-	readInMaxMindASDBCSV(AS_FOLDER + "/" + MAXMIND_AS_DB_FILE_NAME)
+	readInMaxMindASDBCSV()
 }
 
 func FindAS(ip string) (string, string) {
@@ -72,8 +75,10 @@ func FindAS(ip string) (string, string) {
 	return asId, asOwner
 }
 
-func readInMaxMindASDBCSV(filePath string) {
-	f, err := os.Open(filePath)
+func readInMaxMindASDBCSV() {
+	maxmindAsDBFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_FILE_NAME)
+
+	f, err := os.Open(maxmindAsDBFile)
 	defer f.Close()
 	Check(err)
 	reader := csv.NewReader(bufio.NewReader(f))
@@ -111,7 +116,9 @@ func readInMaxMindASDBCSV(filePath string) {
 }
 
 func downloadMaxMindASLite() {
-	out, err := os.Create(AS_FOLDER + "/" + MAXMIND_AS_DB_ZIP_FILE_NAME)
+	maxmindAsDBZipFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_ZIP_FILE_NAME)
+
+	out, err := os.Create(maxmindAsDBZipFile)
 	defer out.Close()
 	Check(err)
 

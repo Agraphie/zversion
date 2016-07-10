@@ -3,9 +3,11 @@ package http1
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/agraphie/zversion/analysis"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -93,11 +95,12 @@ func (e ZversionEntry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
-	fmt.Printf("Started at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
+	log.Println("Started")
 
-	inputFileNameSplit := strings.Split(path, "/")
+	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
-	outputFile := util.CreateOutputJsonFile(util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
+	outputFolderPath := filepath.Join(util.ANALYSIS_OUTPUT_BASE_PATH, util.HTTP_ANALYSIS_OUTPUTH_PATH, inputFileName)
+	outputFile := util.CreateOutputJsonFile(outputFolderPath, OUTPUT_FILE_NAME)
 
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
@@ -108,9 +111,11 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.Finished = time.Now()
 
 	httpVersionResult.ProcessedZgrabOutput = path
-	util.WriteSummaryFileAsJson(hosts.M, util.ANALYSIS_OUTPUT_BASE_PATH+util.HTTP_ANALYSIS_OUTPUTH_PATH+inputFileName+"/", OUTPUT_FILE_NAME)
-	fmt.Printf("Finished at %s\n", time.Now().Format(util.TIMESTAMP_FORMAT))
-	fmt.Printf("Not cleaned: %d\n", notCleaned)
+	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, OUTPUT_FILE_NAME)
+	log.Println("Cleaning finished")
+	log.Printf("Not cleaned: %d\n", notCleaned)
+
+	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME), outputFolderPath)
 
 	return httpVersionResult
 }
