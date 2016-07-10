@@ -1,7 +1,8 @@
 #!/bin/bash
 #Output file name: nginx_major_vulnerabilities_distribution
-printf $1
-printf "\n"
+printf "Script name: $0\n"
+printf "Input file: $1\n"
+printf '%s\n' '-----------------------'
 printf "'CVE-2014-0133 (1.3.15 - 1.5.11)'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0001000300150000" and .CanonicalVersion <= "0001000500110000" and .CanonicalVersion != "") | .Version' $1 | wc -l`"
 printf "\n"
 printf "'CVE-2014-0088 (1.5.10)'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion == "0001000500100000" and .Version != "") | .Version' $1 | wc -l`"
@@ -19,5 +20,5 @@ printf "\n"
 printf "'CVE-2009-3896 (0.1.0 - 0.8.13)'; `jq '.Agents[] | select(.Agent=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0000000800130000" and .Version != "") | .Version' $1 | wc -l`"
 printf "\n"
 
-printf "Total: `jq '.Agents[] | select(.Agent=="nginx") | .Agent' $1 | wc -l`"
-printf "\n"
+printf "Total: `jq '.Agents[] | select(.Agent=="nginx") | .Agent' $1 | wc -l` \n"
+printf '%s\n' '-----------------------'
