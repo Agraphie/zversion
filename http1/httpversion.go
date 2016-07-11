@@ -95,6 +95,8 @@ func (e ZversionEntry) String() string {
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
+	defer util.TimeTrack(time.Now(), "Processing")
+
 	log.Println("Start cleaning...")
 
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))

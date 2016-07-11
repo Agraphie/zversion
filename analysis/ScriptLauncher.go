@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 const SCRIPT_LIBRARY = "scripts"
@@ -32,6 +33,8 @@ func RunSSHAnalyseScripts(zVersionSSHOutputFile string, zVersionOutputFolderPath
 }
 
 func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPath string) {
+	defer util.TimeTrack(time.Now(), "Analysing")
+
 	files, _ := ioutil.ReadDir(scriptFolderPath)
 	scriptOutputFolderPath := filepath.Join(outputFolderPath, SCRIPT_OUTPUT_FOLDER_NAME)
 	err := os.MkdirAll(scriptOutputFolderPath, util.FILE_ACCESS_PERMISSION)
