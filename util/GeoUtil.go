@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 )
 
 var maxMindGeoDB []geoLiteEntry
@@ -44,10 +45,16 @@ type countryEntry struct {
 
 type geoLiteEntry struct {
 	network                  *net.IPNet
+	firstIP                  net.IP
+	lastIP                   net.IP
 	registeredCountryCode    string
 	geolocationCountryCode   string
 	registeredContinentCode  string
 	geolocationContinentCode string
+}
+
+func (c geoLiteEntry) String() string {
+	return fmt.Sprintf("Network: %s", c.network)
 }
 
 type GeoData struct {
@@ -58,6 +65,8 @@ type GeoData struct {
 }
 
 func GeoUtilInitialise() {
+	defer TimeTrack(time.Now(), "Initialising GeoDB")
+
 	if !CheckPathExist(GEODB_FOLDER) {
 		err := os.MkdirAll(GEODB_FOLDER, FILE_ACCESS_PERMISSION)
 		Check(err)
@@ -78,6 +87,7 @@ func GeoUtilInitialise() {
 	}
 	readInMaxMindGeoDBCSV()
 	sort.Sort(Asc(maxMindGeoDB))
+
 }
 
 func maxMindCleanUp() {
@@ -97,6 +107,7 @@ func maxMindCleanUp() {
 		}
 	}
 }
+
 func FindGeoData(ip string) GeoData {
 	if len(maxMindGeoDB) == 0 {
 		panic(errors.New("GeoDB(s) have not been initialised! Initialise first."))
@@ -111,13 +122,20 @@ func FindGeoData(ip string) GeoData {
 		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ipToCheck)))
 	}
 	for _, v := range maxMindGeoDB {
-		if v.network.Contains(ipToCheck) {
+		if bytes.Compare(ipToCheck, v.firstIP) >= 0 && bytes.Compare(ipToCheck, v.lastIP) <= 0 {
 			registeredCountryCode = v.registeredCountryCode
 			geolocationCountryCode = v.geolocationCountryCode
 			registeredContinentCode = v.registeredContinentCode
 			geolocationContinentCode = v.geolocationContinentCode
 			break
 		}
+		//	if v.network.Contains(ipToCheck) {
+		//		registeredCountryCode = v.registeredCountryCode
+		//		geolocationCountryCode = v.geolocationCountryCode
+		//		registeredContinentCode = v.registeredContinentCode
+		//		geolocationContinentCode = v.geolocationContinentCode
+		//		break
+		//	}
 	}
 
 	return GeoData{registeredCountryCode, geolocationCountryCode,
@@ -141,17 +159,33 @@ func readInMaxMindGeoDBCSV() {
 		if err == io.EOF {
 			break
 		}
-		_, network, errIp := net.ParseCIDR(record[0])
+		firstIP, network, errIp := net.ParseCIDR(record[0])
 		Check(errIp)
+		lastIP := getLastIP(firstIP, network)
 		registeredCountryId := record[1]
 		representedCountryId := record[2]
 
 		entry := geoLiteEntry{network: network, registeredCountryCode: countries[registeredCountryId].countryCode, geolocationCountryCode: countries[representedCountryId].countryCode,
-			registeredContinentCode: countries[registeredCountryId].continentCode, geolocationContinentCode: countries[representedCountryId].continentCode}
+			registeredContinentCode: countries[registeredCountryId].continentCode, geolocationContinentCode: countries[representedCountryId].continentCode, firstIP: firstIP, lastIP: lastIP}
 		maxMindGeoDB = append(maxMindGeoDB, entry)
 	}
 }
+func getLastIP(firstIP net.IP, network *net.IPNet) net.IP {
+	result := make(net.IP, 4)
+	for ip := firstIP.Mask(network.Mask); network.Contains(ip); inc(ip) {
+		copy(result, ip)
+	}
+	return result
+}
 
+func inc(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}
 func readInCountryCodes() {
 	geoFileCountryFilePath := filepath.Join(GEODB_FOLDER, MAXMIND_GEO_DB_COUNTRY_CODES_FILE_NAME)
 	dbCodesCsv, err1 := os.Open(geoFileCountryFilePath)

@@ -22,7 +22,7 @@ const SSH_ANALYSIS_OUTPUTH_PATH = "ssh"
 
 const SCAN_OUTPUT_BASE_PATH = "scanResults"
 const FILE_ACCESS_PERMISSION = 0755
-const CONCURRENCY = 8000
+const CONCURRENCY = 10000
 
 func CheckPathExist(path string) bool {
 	_, err := os.Stat(path)
@@ -209,4 +209,9 @@ func Unzip(src, dest string) error {
 	}
 
 	return nil
+}
+
+func TimeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	log.Printf("%s took %s", name, elapsed)
 }
