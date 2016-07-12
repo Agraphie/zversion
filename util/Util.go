@@ -19,10 +19,14 @@ const TIMESTAMP_FORMAT = "2006-01-02-15:04:05"
 const ANALYSIS_OUTPUT_BASE_PATH = "cleanedResults"
 const HTTP_ANALYSIS_OUTPUTH_PATH = "http"
 const SSH_ANALYSIS_OUTPUTH_PATH = "ssh"
+const HTTP_OUTPUT_FILE_NAME = "http_version"
 
 const SCAN_OUTPUT_BASE_PATH = "scanResults"
 const FILE_ACCESS_PERMISSION = 0755
 const CONCURRENCY = 10000
+
+var HttpBaseOutputDir = filepath.Join(ANALYSIS_OUTPUT_BASE_PATH, HTTP_ANALYSIS_OUTPUTH_PATH)
+var SSHBaseOutputDir = filepath.Join(ANALYSIS_OUTPUT_BASE_PATH, SSH_ANALYSIS_OUTPUTH_PATH)
 
 func CheckPathExist(path string) bool {
 	_, err := os.Stat(path)

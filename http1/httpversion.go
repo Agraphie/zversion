@@ -15,7 +15,6 @@ import (
 const NO_AGENT = "No server field in header"
 const NO_AGENT_KEY = "No server field in header"
 const ERROR_KEY = "Error"
-const OUTPUT_FILE_NAME = "http_version"
 const FILE_ACCESS_PERMISSION = 0755
 
 type BaseEntry struct {
@@ -102,7 +101,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
 	outputFolderPath := filepath.Join(util.ANALYSIS_OUTPUT_BASE_PATH, util.HTTP_ANALYSIS_OUTPUTH_PATH, inputFileName)
-	outputFile := util.CreateOutputJsonFile(outputFolderPath, OUTPUT_FILE_NAME)
+	outputFile := util.CreateOutputJsonFile(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME)
 
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
@@ -113,12 +112,12 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.Finished = time.Now()
 
 	httpVersionResult.ProcessedZgrabOutput = path
-	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, OUTPUT_FILE_NAME)
+	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, util.HTTP_OUTPUT_FILE_NAME)
 	log.Println("Cleaning finished")
 	log.Printf("Not cleaned: %d\n", notCleaned)
 
 	log.Println("Start analysis...")
-	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath)
+	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
 	log.Println("Analysis finished")
 
 	return httpVersionResult

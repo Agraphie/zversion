@@ -87,7 +87,7 @@ func ParseSSHFile(path string) SSHVersionResult {
 	log.Printf("Not cleaned: %d\n", notCleaned)
 
 	log.Println("Start analysis...")
-	analysis.RunSSHAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath)
+	analysis.RunSSHAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
 	log.Println("Analysis finished")
 
 	return sshVersionResult

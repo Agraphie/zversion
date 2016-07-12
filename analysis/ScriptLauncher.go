@@ -22,14 +22,58 @@ const SCRIPT_OUTPUT_FOLDER_NAME = "analysisOutput"
 
 var outputFileNameRegex = regexp.MustCompile(OUTPUT_FILE_NAME_REGEX)
 
-func RunHTTPAnalyseScripts(zVersionHTTPOutputFile string, zVersionOutputFolderPath string) {
-	httpScriptFolder := filepath.Join(SCRIPT_LIBRARY, SCRIPT_LIBRARY_HTTP)
-	launchScripts(httpScriptFolder, zVersionHTTPOutputFile, zVersionOutputFolderPath)
+func RunHTTPAnalyseScriptsOnAllOutputs() {
+	defer util.TimeTrack(time.Now(), "Analysing all HTTP files")
+	var analysisWaitGroup sync.WaitGroup
+
+	cleanedFiles, _ := ioutil.ReadDir(util.HttpBaseOutputDir)
+
+	for _, f := range cleanedFiles {
+		if f.IsDir() {
+			httpOutputFolder := filepath.Join(util.HttpBaseOutputDir, f.Name())
+			httpOutputFile := filepath.Join(httpOutputFolder, util.HTTP_OUTPUT_FILE_NAME+".json")
+			if util.CheckPathExist(httpOutputFile) {
+				analysisWaitGroup.Add(1)
+				go RunHTTPAnalyseScripts(httpOutputFile, httpOutputFolder, &analysisWaitGroup)
+			}
+		}
+	}
+	analysisWaitGroup.Wait()
 }
 
-func RunSSHAnalyseScripts(zVersionSSHOutputFile string, zVersionOutputFolderPath string) {
+func RunSSHAnalyseScriptsOnAllOutputs() {
+	defer util.TimeTrack(time.Now(), "Analysing all SSH files")
+	var analysisWaitGroup sync.WaitGroup
+
+	cleanedFiles, _ := ioutil.ReadDir(util.SSHBaseOutputDir)
+
+	for _, f := range cleanedFiles {
+		if f.IsDir() {
+			sshOutputFolder := filepath.Join(util.SSHBaseOutputDir, f.Name())
+			sshOutputFile := filepath.Join(sshOutputFolder, util.HTTP_OUTPUT_FILE_NAME+".json")
+			if util.CheckPathExist(sshOutputFile) {
+				analysisWaitGroup.Add(1)
+				go RunHTTPAnalyseScripts(sshOutputFile, sshOutputFolder, &analysisWaitGroup)
+			}
+		}
+	}
+	analysisWaitGroup.Wait()
+}
+
+func RunHTTPAnalyseScripts(zVersionHTTPOutputFile string, zVersionOutputFolderPath string, folderAnalysisWaitGroup *sync.WaitGroup) {
+	httpScriptFolder := filepath.Join(SCRIPT_LIBRARY, SCRIPT_LIBRARY_HTTP)
+	launchScripts(httpScriptFolder, zVersionHTTPOutputFile, zVersionOutputFolderPath)
+	if folderAnalysisWaitGroup != nil {
+		folderAnalysisWaitGroup.Done()
+	}
+}
+
+func RunSSHAnalyseScripts(zVersionSSHOutputFile string, zVersionOutputFolderPath string, folderAnalysisWaitGroup *sync.WaitGroup) {
 	httpScriptFolder := filepath.Join(SCRIPT_LIBRARY, SCRIPT_LIBRARY_SSH)
 	launchScripts(httpScriptFolder, zVersionSSHOutputFile, zVersionOutputFolderPath)
+	if folderAnalysisWaitGroup != nil {
+		folderAnalysisWaitGroup.Done()
+	}
 }
 
 func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPath string) {
@@ -48,34 +92,41 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 			go launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
 		}
 	}
+
 	scriptWaitGroup.Wait()
 }
 
 func launchScript(scriptPath string, scriptInputFilePath string, scriptOutputFolderPath string, scriptWaitgroup *sync.WaitGroup) {
-	if _, err := os.Stat(scriptPath); err == nil {
-		cmd := exec.Command(scriptPath, scriptInputFilePath)
+	fileInfo, err := os.Stat(scriptPath)
+	if err == nil {
+		if fileInfo.Mode()&0111 != 0 {
+			cmd := exec.Command(scriptPath, scriptInputFilePath)
 
-		outputFileName := determineOutputFileName(scriptPath)
-		if outputFileName == "" {
-			scriptFileNameSplit := strings.Split(scriptPath, string(filepath.Separator))
-			scriptFileName := scriptFileNameSplit[len(scriptFileNameSplit)-1]
-			outputFileName = scriptFileName + ".out"
+			outputFileName := determineOutputFileName(scriptPath)
+			if outputFileName == "" {
+				scriptFileNameSplit := strings.Split(scriptPath, string(filepath.Separator))
+				scriptFileName := scriptFileNameSplit[len(scriptFileNameSplit)-1]
+				outputFileName = scriptFileName + ".out"
+			}
+
+			// open the out file for writing
+			outfile, err := os.Create(filepath.Join(scriptOutputFolderPath, outputFileName))
+
+			if err != nil {
+				util.Check(err)
+			}
+			defer outfile.Close()
+			cmd.Stdout = outfile
+
+			err = cmd.Start()
+			if err != nil {
+				util.Check(err)
+			}
+			cmd.Wait()
+		} else {
+			log.Printf("Script %s is not executable. Skipping.", scriptPath)
 		}
 
-		// open the out file for writing
-		outfile, err := os.Create(filepath.Join(scriptOutputFolderPath, outputFileName))
-
-		if err != nil {
-			util.Check(err)
-		}
-		defer outfile.Close()
-		cmd.Stdout = outfile
-
-		err = cmd.Start()
-		if err != nil {
-			util.Check(err)
-		}
-		cmd.Wait()
 	} else {
 		log.Println("Script does not exist! Path: " + scriptPath)
 	}

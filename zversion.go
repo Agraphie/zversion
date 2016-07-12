@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/agraphie/zversion/analysis"
 	"github.com/agraphie/zversion/http1"
 	"github.com/agraphie/zversion/ssh"
 	"github.com/agraphie/zversion/util"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -26,9 +28,11 @@ var (
 	isHttpScan         = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
 	isHttpAnalysis     = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
 	isSSHAnalysis      = flag.Bool("ssh-analysis", false, "Whether a SSH analysis should be launched")
+	rerunScripts       = flag.String("run-scripts", "", "Rerun all scripts on target or all cleaned files")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
+const RERUN_SCRIPTS_ON_ALL_CLEANED_FILES_FLAG = "all"
 
 func init() {
 	flag.StringVar(portFlag, "p", "80", "The port to scan")
@@ -37,6 +41,7 @@ func init() {
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
 	flag.StringVar(analysisInputPath, "ai", "", "Path to zgrab json output")
 	flag.StringVar(blacklistPath, "bf", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
+	flag.StringVar(rerunScripts, "rs", "", "Path to target cleaned directory on which the scripts should be run. Can only be used in conjunction with 'http-analysis' or 'ssh-analysis'. Entering Type 'all' to run all scripts on all cleaned files.")
 
 	flag.BoolVar(isHttpScan, "hs", false, "Whether a HTTP scan should be launched")
 	flag.BoolVar(isHttpAnalysis, "ha", false, "Whether a HTTP analysis should be launched")
@@ -61,19 +66,38 @@ func main() {
 		} else {
 			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
 		}
-	} else if *isHttpAnalysis {
+	} else if *isHttpAnalysis && *rerunScripts == "" {
 		if util.CheckPathExist(*analysisInputPath) {
 			log.Printf("Processing file: %s\n", *analysisInputPath)
 			http1.ParseHttpFile(*analysisInputPath)
 		} else {
 			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
 		}
-	} else if *isSSHAnalysis {
+	} else if *isSSHAnalysis && *rerunScripts == "" {
 		if util.CheckPathExist(*analysisInputPath) {
 			log.Printf("Processing file: %s\n", *analysisInputPath)
 			ssh.ParseSSHFile(*analysisInputPath)
 		} else {
 			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
+		}
+	} else if (*isHttpAnalysis || *isSSHAnalysis) && *rerunScripts != "" {
+		if *rerunScripts == RERUN_SCRIPTS_ON_ALL_CLEANED_FILES_FLAG {
+			log.Println("Starting analysis of all output files")
+
+			if *isSSHAnalysis {
+				analysis.RunSSHAnalyseScriptsOnAllOutputs()
+			} else {
+				analysis.RunHTTPAnalyseScriptsOnAllOutputs()
+			}
+		} else if util.CheckPathExist(*rerunScripts) {
+			log.Printf("Analysing file output in folder: %s\n", *rerunScripts)
+			if *isSSHAnalysis {
+				analysis.RunSSHAnalyseScripts(filepath.Join(*rerunScripts, ssh.OUTPUT_FILE_NAME+".json"), *rerunScripts, nil)
+			} else {
+				analysis.RunHTTPAnalyseScripts(filepath.Join(*rerunScripts, util.HTTP_OUTPUT_FILE_NAME+".json"), *rerunScripts, nil)
+			}
+		} else {
+			fmt.Printf("File '%s' does not exist or no permission to read it\n", *rerunScripts)
 		}
 	} else {
 		fmt.Fprintln(os.Stderr, "No scan or analysis specified! E.g. specify the flag `-hs` for a complete HTTP scan")
