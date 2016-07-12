@@ -3,7 +3,7 @@
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '-----------------------'
-asns=($(jq '.ASId' $1 | sort | uniq -c | sort -nr | awk '$1 > 10  {print $2 $3}'))
+asns=($(jq '.ASId' $1 | sort | uniq -c | sort -nr | awk '$1 > 30  {print $2 $3}'))
 for i in "${asns[@]}"
 do
     #remove quotes, this is necessary for jq to work
