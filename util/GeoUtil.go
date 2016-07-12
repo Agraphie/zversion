@@ -58,10 +58,10 @@ func (c geoLiteEntry) String() string {
 }
 
 type GeoData struct {
-	RegisteredCountryCode    string
-	GeolocationCountryCode   string
-	RegisteredContinentCode  string
-	GeolocationContinentCode string
+	RegisteredCountryCode    string `json:"RegCountry"`
+	GeolocationCountryCode   string `json:"GeoCountry"`
+	RegisteredContinentCode  string `json:"RegContinent"`
+	GeolocationContinentCode string `json:"GeoContinent"`
 }
 
 func GeoUtilInitialise() {
