@@ -3,12 +3,15 @@
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '-----------------------'
-printf "WordPress: `jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' $1 | wc -l`"
+joomla=$(jq '.CMS[] | select(.Vendor=="Joomla") | .Vendor' $1 | wc -l)
+wordpress=$(jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' $1 | wc -l)
+drupal=$(jq '.CMS[] | select(.Vendor=="Drupal") | .Vendor' $1 | wc -l)
+printf "WordPress: $wordpress"
 printf "\n"
-printf "Joomla: `jq '.CMS[] | select(.Vendor=="Joomla") | .Vendor' $1 | wc -l`"
+printf "Joomla: $joomla"
 printf "\n"
-printf "Drupal: `jq '.CMS[] | select(.Vendor=="Drupal") | .Vendor' $1 | wc -l`"
+printf "Drupal: $drupal"
 printf "\n"
-printf "Total: `jq '.CMS[] | select(.Vendor !="") | .Vendor' $1 | wc -l`"
+printf "Total (WordPress+Joomla+Drupal): $(( drupal+wordpress+joomla ))"
 printf "\n"
 printf '%s\n' '-----------------------'
