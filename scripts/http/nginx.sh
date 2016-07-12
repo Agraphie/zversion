@@ -9,7 +9,7 @@ printf "'CVE-2014-0088 (1.5.10)'; `grep "nginx" $1 | jq '.Agents[] | select(.Ven
 printf "\n"
 printf "'CVE-2013-2028 (1.3.9 - 1.4.0)'; `grep "nginx" $1 | jq '.Agents[] | select(.Vendor=="nginx" and .CanonicalVersion >= "0001000300090000" and .CanonicalVersion <= "0001000400000000" and .Version != "") | .Version'  | wc -l`"
 printf "\n"
-printf "'CVE-2012-2089 (1.1.3 - 1.1.18, 1.0.7 - 1.0.14)'; `grep "nginx" $1 | jq '.Agents[] | select(.Vendor=="nginx" and ((.CanonicalVersion >= "0001000100030000" and .CanonicalVersion <= "0001000100180000") or (.CanonicalVersion >= "0001000000070000" and .CanonicalVersion <= "0001000000140000")) and .Version != "") | .Version' $1 | wc -l`"
+printf "'CVE-2012-2089 (1.1.3 - 1.1.18, 1.0.7 - 1.0.14)'; `grep "nginx" $1 | jq '.Agents[] | select(.Vendor=="nginx" and ((.CanonicalVersion >= "0001000100030000" and .CanonicalVersion <= "0001000100180000") or (.CanonicalVersion >= "0001000000070000" and .CanonicalVersion <= "0001000000140000")) and .Version != "") | .Version' | wc -l`"
 printf "\n"
 printf "'CVE-2012-1180 (0.1.0 - 1.1.16)'; `grep "nginx" $1 | jq '.Agents[] | select(.Vendor=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0001000100160000" and .Version != "") | .Version'  | wc -l`"
 printf "\n"
@@ -20,5 +20,5 @@ printf "\n"
 printf "'CVE-2009-3896 (0.1.0 - 0.8.13)'; `grep "nginx" $1 |jq '.Agents[] | select(.Vendor=="nginx" and .CanonicalVersion >= "0000000100000000" and .CanonicalVersion <= "0000000800130000" and .Version != "") | .Version'  | wc -l`"
 printf "\n"
 
-printf "Total: `grep "nginx" $1 | jq '.Agents[] | select(.Vendor=="nginx") | .Vendor' $1 | wc -l` \n"
+printf "Total: `grep "nginx" $1 | jq '.Agents[] | select(.Vendor=="nginx") | .Vendor' | wc -l` \n"
 printf '%s\n' '----------------------------------------------'
