@@ -97,6 +97,8 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 }
 
 func launchScript(scriptPath string, scriptInputFilePath string, scriptOutputFolderPath string, scriptWaitgroup *sync.WaitGroup) {
+	defer util.TimeTrack(time.Now(), scriptPath)
+
 	fileInfo, err := os.Stat(scriptPath)
 	if err == nil {
 		if fileInfo.Mode()&0111 != 0 {
@@ -117,6 +119,7 @@ func launchScript(scriptPath string, scriptInputFilePath string, scriptOutputFol
 			}
 			defer outfile.Close()
 			cmd.Stdout = outfile
+			cmd.Stderr = os.Stderr
 
 			err = cmd.Start()
 			if err != nil {
