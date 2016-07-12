@@ -3,9 +3,9 @@
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '-----------------------'
-joomla=$(jq '.CMS[] | select(.Vendor=="Joomla") | .Vendor' $1 | wc -l)
-wordpress=$(jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' $1 | wc -l)
-drupal=$(jq '.CMS[] | select(.Vendor=="Drupal") | .Vendor' $1 | wc -l)
+joomla=$(grep "Joomla" $1 | jq '.CMS[] | select(.Vendor=="Joomla") | .Vendor' | wc -l)
+wordpress=$(grep "WordPress" $1 | jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor'  | wc -l)
+drupal=$(grep "Drupal" $1 | jq '.CMS[] | select(.Vendor=="Drupal") | .Vendor' | wc -l)
 printf "WordPress: $wordpress"
 printf "\n"
 printf "Joomla: $joomla"

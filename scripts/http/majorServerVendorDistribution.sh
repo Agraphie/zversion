@@ -41,7 +41,7 @@ do
     printf '%s\n' "------Vendor: $i ($total in total)-------"
 
     if [[ $total > 0 ]]; then
-        top3=`grep $i $1 | jq --arg vendor $i '.ASId' |  sort | uniq -c | sort -nr | head -n 10`
+        top3=`grep $i | jq --arg vendor $i 'select(.Agents[].Vendor == $vendor) | .ASId' |  sort | uniq -c | sort -nr | head -n 10`
         printf '%s\n' "$top3"
         printf "\n"
     fi
