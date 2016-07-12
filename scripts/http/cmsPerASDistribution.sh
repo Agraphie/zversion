@@ -9,9 +9,9 @@ do
     #remove quotes, this is necessary for jq to work
     temp="${i%\"}"
     temp="${temp#\"}"
-    top3=`grep $i $1 | jq '.CMS[].Vendor' |  sort | uniq -c | sort -nr | head -n 3`
+    top3=`grep "$i" $1 | jq '.CMS[].Vendor' |  sort | uniq -c | sort -nr | head -n 3`
     if  [[ !  -z  $top3  ]]; then
-        asnName=`grep -m 1 $i $1 | jq --arg asn $temp '.ASOwner'`
+        asnName=`grep -m 1 "$i" $1 | jq --arg asn $temp 'select(.ASId==$asn) | .ASOwner'`
         printf '%s\n' "---------- $temp ($asnName) -------------"
         printf '%s\n' "$top3"
         printf "\n"

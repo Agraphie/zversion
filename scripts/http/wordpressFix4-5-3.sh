@@ -3,10 +3,10 @@
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '-----------------------'
-ips=($(jq ' select(.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion >= "0004000500030000" and .CanonicalVersion != "")) | .IP' $1))
+ips=($(grep "WordPress" $1 | jq 'select(.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion >= "0004000500030000" and .CanonicalVersion != "")) | .IP'))
 printf "WordPress version >= 4.5.3: ${#ips[@]}"
 printf "\n"
-printf "WordPress total count: `jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' $1 | wc -l` \n"
+printf "WordPress total count: `grep "WordPress" $1 | jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' | wc -l` \n"
 printf '%s\n' '-----------WordPress version >= 4.5.3 Top 10 ASN------------'
 asns=()
 
@@ -15,10 +15,11 @@ do
     #remove quotes, this is necessary for jq to work
     temp="${i%\"}"
     temp="${temp#\"}"
-    asn=`jq --arg ip $temp 'select(.IP == $ip) | .ASId' $1 | head -n 1`
+    asn=`grep -m 1 "$i" $1 |jq --arg ip $temp 'select(.IP == $ip) | .ASId'`
     asns+=("$asn")
 done
 
-echo "${asns[@]}" | tr ' ' '\n' | sort | uniq -c | sort -nr | head -n 10
-
+if [ ${#ips[@]} -gt 0 ]; then
+    echo "${asns[@]}" | tr ' ' '\n' | sort | uniq -c | sort -nr | head -n 10
+fi
 printf '%s\n' '------------------------------------------------------------'
