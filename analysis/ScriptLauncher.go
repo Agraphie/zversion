@@ -89,7 +89,7 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 		if !f.IsDir() {
 			scriptWaitGroup.Add(1)
 			scriptPath := filepath.Join(scriptFolderPath, f.Name())
-			go launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
+			launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
 		}
 	}
 
@@ -97,11 +97,10 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 }
 
 func launchScript(scriptPath string, scriptInputFilePath string, scriptOutputFolderPath string, scriptWaitgroup *sync.WaitGroup) {
-	defer util.TimeTrack(time.Now(), scriptPath)
-
 	fileInfo, err := os.Stat(scriptPath)
 	if err == nil {
 		if fileInfo.Mode()&0111 != 0 {
+			defer util.TimeTrack(time.Now(), scriptPath)
 			cmd := exec.Command(scriptPath, scriptInputFilePath)
 
 			outputFileName := determineOutputFileName(scriptPath)
