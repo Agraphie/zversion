@@ -2,8 +2,10 @@
 #Output filename: server_vendor_top_3_for_asn
 printf "Script name: $0\n"
 printf "Input file: $1\n"
-printf '%s\n' '-----------------------'
-asns=($(jq '.ASId' $1 | sort | uniq -c | sort -nr | awk '$1 > 30  {print $2 $3}'))
+printf '%s\n' '------------Server Distribution for ASNS appearing at least 100 times-------------'
+asns=($(grep -v "Agents\[\]" $1| jq '.ASId' | sort | uniq -c | sort -nr | awk '$1 >= 100  {print $2 $3}'))
+printf "#ASNS: %s\n" "${#asns[@]}"
+
 for i in "${asns[@]}"
 do
     #remove quotes, this is necessary for jq to work
@@ -17,4 +19,4 @@ do
         printf "\n"
     fi
 done
-printf '%s\n' '-----------------------'
+printf '%s\n' '-----------------------------------------------------------------------------------'
