@@ -18,8 +18,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
+	buf := make([]byte, 0, 64*1024)
 	scanner := bufio.NewScanner(file)
+	scanner.Buffer(buf, 1024*1024)
 
 	var entry http1.ZversionEntry
 	for scanner.Scan() {
@@ -47,6 +48,8 @@ func main() {
 	defer file.Close()
 
 	scanner1 := bufio.NewScanner(file1)
+	scanner1.Buffer(buf, 1024*1024)
+
 	for scanner1.Scan() {
 		line := scanner1.Text()
 		json.Unmarshal([]byte(line), &entry)
@@ -65,5 +68,6 @@ func main() {
 	if err1 := scanner1.Err(); err1 != nil {
 		log.Fatal(err1)
 	}
+	log.Println("Upgraded from versions in " + filepathOld + " to version 4.5.3 in " + filepathNew)
 	log.Println(sum)
 }
