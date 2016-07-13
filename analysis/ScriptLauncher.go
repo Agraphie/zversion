@@ -89,7 +89,7 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 		if !f.IsDir() {
 			scriptWaitGroup.Add(1)
 			scriptPath := filepath.Join(scriptFolderPath, f.Name())
-			launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
+			go launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
 		}
 	}
 
