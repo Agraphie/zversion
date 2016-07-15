@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 )
 
@@ -45,8 +44,8 @@ type countryEntry struct {
 
 type geoLiteEntry struct {
 	network                  *net.IPNet
-	firstIP                  net.IP
-	lastIP                   net.IP
+	firstIP                  string
+	lastIP                   string
 	registeredCountryCode    string
 	geolocationCountryCode   string
 	registeredContinentCode  string
@@ -54,7 +53,7 @@ type geoLiteEntry struct {
 }
 
 func (c geoLiteEntry) String() string {
-	return fmt.Sprintf("Network: %s", c.network)
+	return fmt.Sprintf("Network: %s, Continent: %s,Last IP: %s, First IP: %s", c.network, c.registeredContinentCode, c.lastIP, c.firstIP)
 }
 
 type GeoData struct {
@@ -86,7 +85,7 @@ func GeoUtilInitialise() {
 		maxMindCleanUp()
 	}
 	readInMaxMindGeoDBCSV()
-	sort.Sort(Asc(maxMindGeoDB))
+	//sort.Sort(Asc(maxMindGeoDB))
 
 }
 
@@ -122,13 +121,17 @@ func FindGeoData(ip string) GeoData {
 		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ipToCheck)))
 	}
 	for _, v := range maxMindGeoDB {
-		if bytes.Compare(ipToCheck, v.firstIP) >= 0 && bytes.Compare(ipToCheck, v.lastIP) <= 0 {
+		firstIP := net.ParseIP(v.firstIP)
+		lastIP := net.ParseIP(v.lastIP)
+
+		if bytes.Compare(ipToCheck, firstIP) >= 0 && bytes.Compare(ipToCheck, lastIP) <= 0 {
 			registeredCountryCode = v.registeredCountryCode
 			geolocationCountryCode = v.geolocationCountryCode
 			registeredContinentCode = v.registeredContinentCode
 			geolocationContinentCode = v.geolocationContinentCode
 			break
 		}
+
 		//	if v.network.Contains(ipToCheck) {
 		//		registeredCountryCode = v.registeredCountryCode
 		//		geolocationCountryCode = v.geolocationCountryCode
@@ -162,11 +165,12 @@ func readInMaxMindGeoDBCSV() {
 		firstIP, network, errIp := net.ParseCIDR(record[0])
 		Check(errIp)
 		lastIP := getLastIP(firstIP, network)
+
 		registeredCountryId := record[1]
 		representedCountryId := record[2]
 
 		entry := geoLiteEntry{network: network, registeredCountryCode: countries[registeredCountryId].countryCode, geolocationCountryCode: countries[representedCountryId].countryCode,
-			registeredContinentCode: countries[registeredCountryId].continentCode, geolocationContinentCode: countries[representedCountryId].continentCode, firstIP: firstIP, lastIP: lastIP}
+			registeredContinentCode: countries[registeredCountryId].continentCode, geolocationContinentCode: countries[representedCountryId].continentCode, firstIP: firstIP.String(), lastIP: lastIP.String()}
 		maxMindGeoDB = append(maxMindGeoDB, entry)
 	}
 }
