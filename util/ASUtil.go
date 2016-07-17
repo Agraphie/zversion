@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"github.com/thekvs/go-net-radix"
 	"io"
 	"log"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var maxMindASDB []asLiteEntry
@@ -26,10 +28,9 @@ const MAXMIND_ASIP_URL = "http://download.maxmind.com/download/geoip/database/as
 const MAXMIND_AS_DB_ENTRY_REGEX = `(AS\d*)(?:\s(.*))?`
 
 var maxmindASDBRegex = regexp.MustCompile(MAXMIND_AS_DB_ENTRY_REGEX)
+var asnRadixTree *netradix.NetRadixTree
 
 type asLiteEntry struct {
-	startIP int
-	endIp   int
 	asId    string
 	asOwner string
 }
@@ -39,6 +40,8 @@ func ASUtilInitialise() {
 		err := os.MkdirAll(AS_FOLDER, FILE_ACCESS_PERMISSION)
 		Check(err)
 	}
+	defer TimeTrack(time.Now(), "Initialising ASN DB")
+
 	maxmindAsDBFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_FILE_NAME)
 	maxmindAsDBZipFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_ZIP_FILE_NAME)
 	if !CheckPathExist(maxmindAsDBFile) {
@@ -54,29 +57,54 @@ func ASUtilInitialise() {
 	readInMaxMindASDBCSV()
 }
 
+//func FindAS(ip string) (string, string) {
+//	if len(maxMindASDB) == 0 {
+//		panic(errors.New("ASDB(s) have not been initialised! Initialise first."))
+//	}
+//	if net.ParseIP(ip).To4() == nil {
+//		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ip)))
+//	}
+//
+//	ipToCheck := calculateMaxMindIpValue(ip)
+//	asId := "Not found"
+//	asOwner := "Not found"
+//	for _, v := range maxMindASDB {
+//		if ipToCheck >= v.startIP && ipToCheck <= v.endIp {
+//			asId = v.asId
+//			asOwner = v.asOwner
+//			break
+//		}
+//	}
+//	return asId, asOwner
+//}
+
 func FindAS(ip string) (string, string) {
-	if len(maxMindASDB) == 0 {
+	if asnRadixTree == nil {
 		panic(errors.New("ASDB(s) have not been initialised! Initialise first."))
 	}
 	if net.ParseIP(ip).To4() == nil {
 		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ip)))
 	}
 
-	ipToCheck := calculateMaxMindIpValue(ip)
 	asId := "Not found"
 	asOwner := "Not found"
-	for _, v := range maxMindASDB {
-		if ipToCheck >= v.startIP && ipToCheck <= v.endIp {
-			asId = v.asId
-			asOwner = v.asOwner
-			break
-		}
+	found, udata, err := asnRadixTree.SearchBest(ip)
+	Check(err)
+
+	if found {
+		split := strings.Split(udata, ",")
+		asId = split[0]
+		asOwner = split[1]
 	}
+
 	return asId, asOwner
 }
 
 func readInMaxMindASDBCSV() {
 	maxmindAsDBFile := filepath.Join(AS_FOLDER, MAXMIND_AS_DB_FILE_NAME)
+	var err1 error
+	asnRadixTree, err1 = netradix.NewNetRadixTree()
+	Check(err1)
 
 	f, err := os.Open(maxmindAsDBFile)
 	defer f.Close()
@@ -88,14 +116,14 @@ func readInMaxMindASDBCSV() {
 		if err == io.EOF {
 			break
 		}
-		startIP, errStart := strconv.Atoi(record[0])
-		endIP, errEnd := strconv.Atoi(record[1])
+		startIPInt, errStart := strconv.Atoi(record[0])
+		endIPInt, errEnd := strconv.Atoi(record[1])
 
 		if errStart != nil {
-			log.Printf("%v is not an IPv4 address\n", startIP)
+			log.Printf("%v is not an IPv4 address\n", startIPInt)
 			panic(errors.New("Wrong MaxMind GeoDB CSV file format!"))
 		} else if errEnd != nil {
-			log.Printf("%v is not an IPv4 address\n", endIP)
+			log.Printf("%v is not an IPv4 address\n", endIPInt)
 			panic(errors.New("Wrong MaxMind GeoDB CSV file format!"))
 		}
 
@@ -108,9 +136,14 @@ func readInMaxMindASDBCSV() {
 			if len(asInfo) > 2 {
 				asOwner = asInfo[2]
 			}
+			startIP := calculateIPFromMaxmindValue(startIPInt)
+			endIP := calculateIPFromMaxmindValue(endIPInt)
 
-			entry := asLiteEntry{startIP: startIP, endIp: endIP, asId: asId, asOwner: asOwner}
-			maxMindASDB = append(maxMindASDB, entry)
+			cidr := calculateCidr(startIP, endIP)
+
+			asnRadixTree.Add(cidr.String(), asId+","+asOwner)
+
+			//maxMindASDB = append(maxMindASDB, entry)
 		}
 	}
 }
@@ -142,4 +175,33 @@ func calculateMaxMindIpValue(ip string) int {
 		ipDigits = append(ipDigits, j)
 	}
 	return (16777216 * ipDigits[0]) + (65536 * ipDigits[1]) + (256 * ipDigits[2]) + ipDigits[3]
+}
+
+func calculateIPFromMaxmindValue(ipnum int) net.IP {
+	o1 := (ipnum / 16777216) % 256
+	o2 := (ipnum / 65536) % 256
+	o3 := (ipnum / 256) % 256
+	o4 := ipnum % 256
+
+	ip := strconv.Itoa(o1) + "." + strconv.Itoa(o2) + "." + strconv.Itoa(o3) + "." + strconv.Itoa(o4)
+
+	return net.ParseIP(ip)
+}
+
+func calculateCidr(ip1, ip2 net.IP) *net.IPNet {
+	maxLen := 32
+
+	for l := maxLen; l >= 0; l-- {
+		mask := net.CIDRMask(l, maxLen)
+		na := ip1.Mask(mask)
+		n := net.IPNet{IP: na, Mask: mask}
+
+		if n.Contains(ip2) {
+			muh := strconv.Itoa(l)
+			_, result1, err := net.ParseCIDR(na.String() + "/" + muh)
+			Check(err)
+			return result1
+		}
+	}
+	return nil
 }

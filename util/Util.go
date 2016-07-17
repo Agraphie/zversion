@@ -3,6 +3,7 @@ package util
 import (
 	"archive/zip"
 	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"log"
@@ -213,6 +214,30 @@ func Unzip(src, dest string) error {
 	}
 
 	return nil
+}
+
+func Ungzip(source, target string) error {
+	reader, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	archive, err := gzip.NewReader(reader)
+	if err != nil {
+		return err
+	}
+	defer archive.Close()
+
+	target = filepath.Join(target, archive.Name)
+	writer, err := os.Create(target)
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+
+	_, err = io.Copy(writer, archive)
+	return err
 }
 
 func TimeTrack(start time.Time, name string) {

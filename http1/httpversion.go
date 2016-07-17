@@ -108,6 +108,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	util.GeoUtilInitialise()
 	util.ASUtilInitialise()
 	hosts := worker.ParseFile(path, outputFile, workOnLine)
+	util.GeoUtilShutdown()
 	httpVersionResult.ResultAmount = hosts.M
 	httpVersionResult.Finished = time.Now()
 
