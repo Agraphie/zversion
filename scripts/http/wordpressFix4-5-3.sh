@@ -3,13 +3,14 @@
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '------------------------------------------------------------'
-ips=($(grep "WordPress" $1 | jq 'select(.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion >= "0004000500030000" and .CanonicalVersion != "")) | .IP'))
-printf "WordPress version >= 4.5.3: ${#ips[@]}"
+#ips=($(grep "WordPress" $1 | jq 'select(.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion >= "0004000500030000" and .CanonicalVersion != "")) | .IP'))
+#printf "WordPress version >= 4.5.3: ${#ips[@]}"
 printf "\n"
 printf "WordPress total count: `grep "WordPress" $1 | jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' | wc -l` \n"
-#printf '%s\n' '-----------WordPress version >= 4.5.3 Top 10 ASN------------'
+printf '%s\n' '-----------WordPress version 4.5.3 Top 10 ASN------------'
 #asns=()
-#
+printf "`grep "WordPress" $1 | jq 'select(.CMS[].Vendor=="WordPress" and .CMS[].CanonicalVersion == "0004000500030000" and .CMS[].CanonicalVersion != "") | .ASId' | sort | uniq -c | sort -nr` \n"
+
 #for i in "${ips[@]}"
 #do
 #    #remove quotes, this is necessary for jq to work
