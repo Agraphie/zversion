@@ -1,5 +1,5 @@
 #!/bin/bash
-#Output filename: major_server_vendor_distribution_for_asn
+#Output filename: major_server_vendor_distribution
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '----------------------------------------------'
