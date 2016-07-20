@@ -34,7 +34,7 @@ func RunHTTPAnalyseScriptsOnAllOutputs() {
 			httpOutputFile := filepath.Join(httpOutputFolder, util.HTTP_OUTPUT_FILE_NAME+".json")
 			if util.CheckPathExist(httpOutputFile) {
 				analysisWaitGroup.Add(1)
-				go RunHTTPAnalyseScripts(httpOutputFile, httpOutputFolder, &analysisWaitGroup)
+				RunHTTPAnalyseScripts(httpOutputFile, httpOutputFolder, &analysisWaitGroup)
 			}
 		}
 	}
@@ -53,7 +53,7 @@ func RunSSHAnalyseScriptsOnAllOutputs() {
 			sshOutputFile := filepath.Join(sshOutputFolder, util.HTTP_OUTPUT_FILE_NAME+".json")
 			if util.CheckPathExist(sshOutputFile) {
 				analysisWaitGroup.Add(1)
-				go RunHTTPAnalyseScripts(sshOutputFile, sshOutputFolder, &analysisWaitGroup)
+				RunHTTPAnalyseScripts(sshOutputFile, sshOutputFolder, &analysisWaitGroup)
 			}
 		}
 	}
@@ -77,7 +77,7 @@ func RunSSHAnalyseScripts(zVersionSSHOutputFile string, zVersionOutputFolderPath
 }
 
 func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPath string) {
-	defer util.TimeTrack(time.Now(), "Analysing")
+	defer util.TimeTrack(time.Now(), "Analysing "+inputFilePath)
 
 	files, _ := ioutil.ReadDir(scriptFolderPath)
 	scriptOutputFolderPath := filepath.Join(outputFolderPath, SCRIPT_OUTPUT_FOLDER_NAME)
@@ -89,7 +89,7 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 		if !f.IsDir() {
 			scriptWaitGroup.Add(1)
 			scriptPath := filepath.Join(scriptFolderPath, f.Name())
-			go launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
+			launchScript(scriptPath, inputFilePath, scriptOutputFolderPath, &scriptWaitGroup)
 		}
 	}
 
@@ -99,6 +99,7 @@ func launchScripts(scriptFolderPath string, inputFilePath string, outputFolderPa
 func launchScript(scriptPath string, scriptInputFilePath string, scriptOutputFolderPath string, scriptWaitgroup *sync.WaitGroup) {
 	fileInfo, err := os.Stat(scriptPath)
 	if err == nil {
+		//Check if script is executable
 		if fileInfo.Mode()&0111 != 0 {
 			defer util.TimeTrack(time.Now(), scriptPath)
 			cmd := exec.Command(scriptPath, scriptInputFilePath)
