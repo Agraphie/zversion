@@ -64,6 +64,8 @@ func (e SSHEntry) String() string {
 }
 
 func ParseSSHFile(path string) SSHVersionResult {
+	defer util.TimeTrack(time.Now(), "Processing")
+
 	log.Println("Start cleaning...")
 
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
