@@ -3,16 +3,22 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"github.com/agraphie/zversion/http1"
 	"log"
 	"os"
+	"strconv"
 )
 
 func main() {
 	entries := map[string]string{}
 	sum := map[string]int{}
+	asn := map[string]int{}
 
 	filepathNew := os.Args[1]
+	filepathOld := os.Args[2]
+	vendor := os.Args[3]
+	canonicalVersion := os.Args[4]
 	file, err := os.Open(filepathNew)
 	if err != nil {
 		log.Fatal(err)
@@ -29,7 +35,7 @@ func main() {
 
 		if len(entry.CMS) > 0 {
 			for _, v := range entry.CMS {
-				if v.Vendor == "WordPress" && v.CanonicalVersion >= "0004000500030000" {
+				if v.Vendor == vendor && v.CanonicalVersion >= canonicalVersion {
 					entries[entry.IP] = v.Version
 				}
 			}
@@ -40,7 +46,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	filepathOld := os.Args[2]
 	file1, err1 := os.Open(filepathOld)
 	if err1 != nil {
 		log.Fatal(err1)
@@ -57,8 +62,9 @@ func main() {
 		if _, ok := entries[entry.IP]; ok {
 			if len(entry.CMS) > 0 {
 				for _, v := range entry.CMS {
-					if v.Vendor == "WordPress" {
+					if v.Vendor == vendor {
 						sum[v.Version]++
+						asn[entry.ASId+"("+entry.ASOwner+")"]++
 					}
 				}
 			}
@@ -68,6 +74,16 @@ func main() {
 	if err1 := scanner1.Err(); err1 != nil {
 		log.Fatal(err1)
 	}
-	log.Println("Upgraded from versions in " + filepathOld + " to version 4.5.3 in " + filepathNew)
-	log.Println(sum)
+	log.Println(vendor + " upgraded from versions in " + filepathOld + " to version " + canonicalVersion + " in " + filepathNew)
+	log.Println("-----------Upgraded from--------------")
+	for v, k := range sum {
+		fmt.Println(strconv.Itoa(k) + " " + v)
+	}
+	log.Println("--------------------------------------")
+
+	log.Println("-----------ASN distribution-----------")
+	for v, k := range asn {
+		fmt.Println(strconv.Itoa(k) + " " + v)
+	}
+	log.Println("--------------------------------------")
 }

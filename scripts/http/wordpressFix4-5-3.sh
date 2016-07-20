@@ -4,7 +4,7 @@ printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '------------------------------------------------------------'
 #ips=($(grep "WordPress" $1 | jq 'select(.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion >= "0004000500030000" and .CanonicalVersion != "")) | .IP'))
-printf "WordPress version >= 4.5.3:  `grep "WordPress" $1 | jq '.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion == "0004000500030000" and .CanonicalVersion != "") | .Vendor' | wc -l`"
+printf "WordPress version == 4.5.3:  `grep "WordPress" $1 | jq '.CMS[] | select(.Vendor=="WordPress" and .CanonicalVersion == "0004000500030000" and .CanonicalVersion != "") | .Vendor' | wc -l`"
 printf "\n"
 printf "WordPress total count: `grep "WordPress" $1 | jq '.CMS[] | select(.Vendor=="WordPress") | .Vendor' | wc -l` \n"
 printf '%s\n' '-----------WordPress version 4.5.3 Top 10 ASN------------'

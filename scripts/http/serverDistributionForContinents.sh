@@ -10,7 +10,7 @@ do
     #remove quotes, this is necessary for jq to work
     temp="${i%\"}"
     temp="${temp#\"}"
-    top3=`grep "$temp" $1 | jq --arg cont "$temp" 'select(.GeoData.Continent == $cont) | .Agents[].Vendor' |  sort | uniq -c | sort -nr | head -n 3`
+    top3=`grep "$temp" $1 | jq --arg cont "$temp" 'select(.GeoData.Continent == $cont) | .Agents[].Vendor' |  sort | uniq -c | sort -nr | head -n 10`
     if  [[ !  -z  $top3  ]]; then
         printf '%s\n' "---------- $temp -------------"
         printf '%s\n' "$top3"
