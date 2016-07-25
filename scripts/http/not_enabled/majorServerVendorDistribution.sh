@@ -8,6 +8,7 @@ majorServerVendors=(
 	"Apache"
 	"nginx"
 	"lighttpd"
+	"AkamaiGHost"
 	"ATS"
 	"BOA"
 	"Allegro Software RomPager"
