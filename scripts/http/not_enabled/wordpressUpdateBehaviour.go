@@ -83,7 +83,7 @@ func main() {
 	if err1 != nil {
 		log.Fatal(err1)
 	}
-	defer file.Close()
+	defer file1.Close()
 
 	scanner1 := bufio.NewScanner(file1)
 	scanner1.Buffer(buf, 1024*1024)
