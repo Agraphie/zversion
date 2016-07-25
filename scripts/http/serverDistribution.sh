@@ -33,6 +33,7 @@ majorServerVendors=(
 	"mbedthis"
 	"PRTG"
 	"Kangle"
+	"AkamaiGHost"
 	"thttpd")
 
 total=`wc -l < $1`
