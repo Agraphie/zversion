@@ -68,58 +68,49 @@ type MetaData struct {
 var zgrabRequest string
 var fallbackCount uint32
 var metaDataString string
-var inputFile *string
+var zmapInputFile *string
 
 /**
 commands is a map where the key is the timestamp when the scan was launched and the values are all cmds which are
 running for that timestamp. This makes it easier to kill them off.
 */
-func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string, blacklistFile string, scanInputFile string) {
+func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string, blacklistFile string, inputFile string) {
 	started := time.Now()
 	timestampFormatted := started.Format(util.TIMESTAMP_FORMAT)
 	outputPath := filepath.Join(scanOutputPath, HTTP_SCAN_OUTPUTH_PATH, timestampFormatted)
-
 	if !util.CheckPathExist(outputPath) {
 		err := os.MkdirAll(outputPath, FILE_ACCESS_PERMISSION)
 		util.Check(err)
 	}
-	content, _ := ioutil.ReadFile("http-req")
-	zgrabRequest = string(content)
-	inputFile = &scanInputFile
 
-	if scanInputFile == "" {
-		inputFile = nil
-		launchFullScan(blacklistFile, timestampFormatted, outputPath, scanTargets, port)
+	if inputFile == "" {
+		zmapInputFile = nil
+		launchFullHttpScan(timestampFormatted, outputPath, port, scanTargets, blacklistFile)
 	} else {
-		launchRestrictedScan(blacklistFile, timestampFormatted, outputPath, port, scanInputFile)
+		launchRestrictedHttpScan(outputPath, timestampFormatted, port, inputFile)
 	}
-
-	//finished := time.Now()
-	//if runningScan != nil {
-	//	runningScan.Finished = finished
-	//}
-
 	log.Printf("Http scan done in: %s\n", time.Since(started))
 }
 
-func launchRestrictedScan(blacklistFile string, timestampFormatted string, outputPath string, port string, inputFile string) {
-	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req", "--input-file", inputFile)
+func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port string, inputFile string) {
+	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head", "--input-file", inputFile)
 	c3StdOut, _ := c3.StdoutPipe()
 	c3StdErr, _ := c3.StderrPipe()
-	var logWaitGroup sync.WaitGroup
-	logWaitGroup.Add(1)
-	go handleZgrabOutput(outputPath, timestampFormatted, c3StdOut, c3StdErr, &logWaitGroup)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go handleZgrabOutput(outputPath, timestampFormatted, c3StdOut, c3StdErr, &wg)
 
 	_ = c3.Start()
 	_ = c3.Wait()
 
 	c3StdOut.Close()
 	c3StdErr.Close()
-	logWaitGroup.Wait()
+	wg.Wait()
 }
 
-func launchFullScan(blacklistFile string, timestampFormatted string, outputPath string, scanTargets string, port string) {
-	zmapOutputFileName := "zmap_output_" + timestampFormatted + ".csv"
+func launchFullHttpScan(timestampFormatted string, outputPath string, port string, scanTargets string, blacklistFile string) {
+	nmapOutputFileName := "zmap_output_" + timestampFormatted + ".csv"
 
 	zmapErrorLog := "zmap_error_" + timestampFormatted
 	zmapErr, _ := os.Create(filepath.Join(outputPath, zmapErrorLog))
@@ -135,11 +126,8 @@ func launchFullScan(blacklistFile string, timestampFormatted string, outputPath 
 		c1 = exec.Command("sudo", "zmap", "-p", port, "-n", scanTargets, "-r", HTTP_SCAN_DEFAULT_PPS, "-b", blacklistFile)
 	}
 
-	zteeOuputPath := filepath.Join(outputPath, zmapOutputFileName)
-
-	c2 := exec.Command("ztee", zteeOuputPath)
-	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req")
-
+	c2 := exec.Command("ztee", filepath.Join(outputPath, nmapOutputFileName))
+	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head")
 	//if runningScan != nil {
 	//	runningScan.RunningCommands = append(runningScan.RunningCommands, c1)
 	//	runningScan.RunningCommands = append(runningScan.RunningCommands, c2)
@@ -160,15 +148,15 @@ func launchFullScan(blacklistFile string, timestampFormatted string, outputPath 
 	c2.Stdin, _ = c1.StdoutPipe()
 	c3.Stdin, _ = c2.StdoutPipe()
 	//	c3.Stdout = os.Stdout
-	var logWaitGroup sync.WaitGroup
-	logWaitGroup.Add(2)
-	go handleZgrabOutput(outputPath, timestampFormatted, c3StdOut, c3StdErr, &logWaitGroup)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go handleZgrabOutput(outputPath, timestampFormatted, c3StdOut, c3StdErr, &wg)
 
 	_ = c2.Start()
 	_ = c3.Start()
 	_ = c1.Start()
 
-	go printAndLog(c1StdErr, zmapErrW, &logWaitGroup)
+	go printAndLog(c1StdErr, zmapErrW, &wg)
 
 	_ = c2.Wait()
 	_ = c3.Wait()
@@ -177,7 +165,12 @@ func launchFullScan(blacklistFile string, timestampFormatted string, outputPath 
 	c1StdErr.Close()
 	c3StdOut.Close()
 	c3StdErr.Close()
-	logWaitGroup.Wait()
+	wg.Wait()
+
+	//finished := time.Now()
+	//if runningScan != nil {
+	//	runningScan.Finished = finished
+	//}
 
 }
 
@@ -256,7 +249,7 @@ func writeMetaData(line string, writeQueueMetaData chan string) {
 	metaData.FallbackCount = fallbackCount
 	metaData.Success_count += fallbackCount
 	metaData.Failure_count -= fallbackCount
-	metaData.ScanInputFile = inputFile
+	metaData.ScanInputFile = zmapInputFile
 
 	j, _ := json.Marshal(metaData)
 
@@ -284,7 +277,6 @@ func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan 
 			util.Check(err)
 			entry.Body = string(bs)
 		}
-		log.Println("Fallback was ok")
 		atomic.AddUint32(&fallbackCount, 1)
 	} else {
 		errFile <- entry.BaseEntry.IP + ": " + entry.Error + "\n"
