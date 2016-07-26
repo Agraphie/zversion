@@ -52,7 +52,7 @@ func main() {
 		if *cmsVendor != "" {
 			if len(entry.CMS) > 0 {
 				for _, v := range entry.CMS {
-					if v.CanonicalVersion == "" {
+					if v.CanonicalVersion == "" && v.Vendor == *cmsVendor {
 						geoLocationDistribution[entry.GeoData.RegisteredCountryCode]++
 						asnDistribution[entry.ASId+"("+entry.ASOwner+")"]++
 						versionUknown++
@@ -62,7 +62,7 @@ func main() {
 		} else {
 			if len(entry.Agents) > 0 {
 				for _, v := range entry.Agents {
-					if v.CanonicalVersion == "" {
+					if v.CanonicalVersion == "" && v.Vendor == *serverVendor {
 						geoLocationDistribution[entry.GeoData.RegisteredCountryCode]++
 						asnDistribution[entry.ASId+"("+entry.ASOwner+")"]++
 						versionUknown++
