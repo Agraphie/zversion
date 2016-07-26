@@ -36,6 +36,7 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 	go func() {
 		var scanner *bufio.Scanner
 		isLz4 := regexp.MustCompile(`.*\.lz4`).FindStringSubmatch(inputPath)
+		isGz := regexp.MustCompile(`.*\.gz`).FindStringSubmatch(inputPath)
 
 		if isLz4 != nil {
 			c1 := exec.Command("lz4", "-dc", inputPath)
@@ -43,8 +44,12 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 			lz4CatStdout, _ := c1.StdoutPipe()
 			scanner = bufio.NewScanner(lz4CatStdout)
 			c1.Start()
-
-			//c1.Wait()
+		} else if isGz != nil {
+			c1 := exec.Command("gunzip", "-dc", inputPath)
+			c1.Stderr = os.Stderr
+			gzCatStdout, _ := c1.StdoutPipe()
+			scanner = bufio.NewScanner(gzCatStdout)
+			c1.Start()
 		} else {
 			file, err := os.Open(inputPath)
 			if err != nil {

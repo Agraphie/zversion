@@ -12,15 +12,24 @@ import (
 	"time"
 )
 
-const NO_AGENT = "No server field in header"
-const NO_AGENT_KEY = "No server field in header"
-const ERROR_KEY = "Error"
-const FILE_ACCESS_PERMISSION = 0755
+type EntryType string
+
+const (
+	NO_AGENT                         = "No server field in header"
+	NO_AGENT_KEY                     = "No server field in header"
+	ERROR_KEY                        = "Error"
+	FILE_ACCESS_PERMISSION           = 0755
+	LEGACY_CENSYS          EntryType = "LegacyCensys"
+	CENSYS                 EntryType = "Censys"
+	RAPID7                 EntryType = "Rapid7"
+	ZVERSION               EntryType = "Zversion"
+)
 
 type BaseEntry struct {
-	IP        string
-	Timestamp time.Time
-	Error     string
+	IP             string
+	Timestamp      time.Time
+	Error          string
+	InputEntryType EntryType
 }
 type Server struct {
 	Vendor           string
@@ -47,6 +56,14 @@ type ZversionEntry struct {
 type unknownHeaderField struct {
 	Key   string
 	Value []string
+}
+
+type RawRapid7Entry struct {
+	BaseEntry
+
+	VHost string
+	Host  string
+	Data  string
 }
 
 type RawCensysEntry struct {
@@ -127,6 +144,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcurrentSafe, writeQueue chan []byte) {
 	for line := range queue {
 		u, xContentHeaderField := assignRawEntry(line)
+
 		httpEntry := ZversionEntry{BaseEntry: u.BaseEntry, Error: u.Error}
 		serverFields := serverFieldRegexp.FindAllStringSubmatch(u.Data.Read, -1)
 
@@ -182,14 +200,30 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 	rawCensysEntry := RawCensysEntry{}
-	json.Unmarshal([]byte(rawLine), &rawCensysEntry)
 	rawCensysLegacyEntry := RawCensysLegacyEntry{}
+	rawRapid7Entry := RawRapid7Entry{}
+	json.Unmarshal([]byte(rawLine), &rawCensysEntry)
 	json.Unmarshal([]byte(rawLine), &rawCensysLegacyEntry)
+	json.Unmarshal([]byte(rawLine), &rawRapid7Entry)
+
 	u := RawZversionEntry{}
 	var xContentEncodedBy []string
 
-	if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
+	if rawRapid7Entry.VHost != "" && rawRapid7Entry.Data != "" {
+		fmt.Println("Rapid7!")
+
+		u.BaseEntry = rawRapid7Entry.BaseEntry
+		u.BaseEntry.InputEntryType = RAPID7
+
+		var err error
+		u.Data.Read, err = util.Base64Decode(rawRapid7Entry.Data)
+
+		util.Check(err)
+	} else if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
+		fmt.Println("Censys normal!")
+
 		u.BaseEntry = rawCensysEntry.BaseEntry
+		u.BaseEntry.InputEntryType = CENSYS
 		u.Error = rawCensysEntry.Error
 		u.Body = rawCensysEntry.Data.Http.Response.Body
 
@@ -201,7 +235,10 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 		}
 		xContentEncodedBy = findXContentEncodedByField(rawCensysEntry.Data.Http.Response.Headers.Unknown)
 	} else if rawCensysLegacyEntry.Data.Http.Response.Headers.Server != nil || rawCensysLegacyEntry.Data.Error != "" {
+		fmt.Println("Censys legacy!")
+
 		u.BaseEntry = rawCensysLegacyEntry.BaseEntry
+		u.BaseEntry.InputEntryType = LEGACY_CENSYS
 		u.Error = rawCensysLegacyEntry.Error
 		u.Body = rawCensysLegacyEntry.Data.Http.Response.Body
 		u.Data.Read += "\r\n" + "Server: " + *rawCensysLegacyEntry.Data.Http.Response.Headers.Server
@@ -210,8 +247,11 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 		}
 		xContentEncodedBy = findXContentEncodedByField(rawCensysEntry.Data.Http.Response.Headers.Unknown)
 	} else {
+		fmt.Println("raw scan entry!")
+
 		//TODO: does not have an x_content_encoded_by header field!
 		json.Unmarshal([]byte(rawLine), &u)
+		u.BaseEntry.InputEntryType = ZVERSION
 	}
 
 	return u, xContentEncodedBy

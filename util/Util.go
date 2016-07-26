@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"compress/gzip"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log"
@@ -243,4 +244,12 @@ func Ungzip(source, target string) error {
 func TimeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
 	log.Printf("%s took %s", name, elapsed)
+}
+
+func Base64Decode(str string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
