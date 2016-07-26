@@ -215,8 +215,10 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 
 		var err error
 		u.Data.Read, err = util.Base64Decode(rawRapid7Entry.Data)
-
-		util.Check(err)
+		if err != nil {
+			log.Printf("Error for IP %s", u.BaseEntry.IP)
+			log.Println(err)
+		}
 	} else if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
 		u.BaseEntry = rawCensysEntry.BaseEntry
 		u.BaseEntry.InputEntryType = CENSYS
