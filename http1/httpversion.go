@@ -209,9 +209,7 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 	u := RawZversionEntry{}
 	var xContentEncodedBy []string
 
-	if rawRapid7Entry.VHost != "" && rawRapid7Entry.Data != "" {
-		fmt.Println("Rapid7!")
-
+	if rawRapid7Entry.Data != "" || rawRapid7Entry.Host != "" {
 		u.BaseEntry = rawRapid7Entry.BaseEntry
 		u.BaseEntry.InputEntryType = RAPID7
 
@@ -220,8 +218,6 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 
 		util.Check(err)
 	} else if len(rawCensysEntry.Data.Http.Response.Headers.Server) != 0 || rawCensysEntry.Data.Error != "" {
-		fmt.Println("Censys normal!")
-
 		u.BaseEntry = rawCensysEntry.BaseEntry
 		u.BaseEntry.InputEntryType = CENSYS
 		u.Error = rawCensysEntry.Error
@@ -235,8 +231,6 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 		}
 		xContentEncodedBy = findXContentEncodedByField(rawCensysEntry.Data.Http.Response.Headers.Unknown)
 	} else if rawCensysLegacyEntry.Data.Http.Response.Headers.Server != nil || rawCensysLegacyEntry.Data.Error != "" {
-		fmt.Println("Censys legacy!")
-
 		u.BaseEntry = rawCensysLegacyEntry.BaseEntry
 		u.BaseEntry.InputEntryType = LEGACY_CENSYS
 		u.Error = rawCensysLegacyEntry.Error
@@ -247,8 +241,6 @@ func assignRawEntry(rawLine string) (RawZversionEntry, []string) {
 		}
 		xContentEncodedBy = findXContentEncodedByField(rawCensysEntry.Data.Http.Response.Headers.Unknown)
 	} else {
-		fmt.Println("raw scan entry!")
-
 		//TODO: does not have an x_content_encoded_by header field!
 		json.Unmarshal([]byte(rawLine), &u)
 		u.BaseEntry.InputEntryType = ZVERSION
