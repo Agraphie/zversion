@@ -19,9 +19,11 @@ import (
 )
 
 var (
-	portFlag           = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
-	scanTargets        = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
-	scanOutputPath     = flag.String("scan-output", "scanResults/", "File path to output scan result")
+	portFlag       = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
+	scanTargets    = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
+	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
+	scanInputFile  = flag.String("scan-input", "", "An input file containing one IP or URL per line which will be scanned. If none specified, a full scan will be launched.")
+
 	analysisOutputPath = flag.String("analysis-output", "analysisResults/", "File path to output analysis results")
 	analysisInputPath  = flag.String("analysis-input", "", "Path to zgrab json output")
 	blacklistPath      = flag.String("blacklist-file", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
@@ -38,6 +40,8 @@ func init() {
 	flag.StringVar(portFlag, "p", "80", "The port to scan")
 	flag.StringVar(scanTargets, "t", "100%", "How many targets should be scanned, absolute or percentage value")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
+	flag.StringVar(scanInputFile, "si", "", "An input file containing one IP or URL per line which will be scanned. If none specified, a full scan will be launched.")
+
 	flag.StringVar(analysisOutputPath, "ao", "analysisResults/", "File path to output analaysis results")
 	flag.StringVar(analysisInputPath, "ai", "", "Path to zgrab json output")
 	flag.StringVar(blacklistPath, "bf", "", "Path to the blacklist file (has to be in CIDR notation). Type 'null' to launch without blacklist.")
@@ -56,12 +60,14 @@ func init() {
 }
 func main() {
 	if *isHttpScan {
-		if *blacklistPath != "" {
-			if *blacklistPath != "null" && !util.CheckPathExist(*blacklistPath) {
-				fmt.Fprintln(os.Stderr, "File does not exist or no permission to read it")
+		if *blacklistPath != "" || *scanInputFile != "" {
+			if (*blacklistPath != "null" && !util.CheckPathExist(*blacklistPath)) && *scanInputFile == "" {
+				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *blacklistPath)
+			} else if *scanInputFile != "" && !util.CheckPathExist(*scanInputFile) {
+				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *scanInputFile)
 			} else {
 				fmt.Println("Launching HTTP scan...")
-				http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets, *blacklistPath)
+				http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets, *blacklistPath, *scanInputFile)
 			}
 		} else {
 			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
