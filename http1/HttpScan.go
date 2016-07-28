@@ -258,7 +258,7 @@ func writeMetaData(line string, writeQueueMetaData chan string) {
 }
 
 func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan string) {
-	timeout := time.Duration(10 * time.Second)
+	timeout := time.Duration(15 * time.Second)
 	client := http.Client{
 		Timeout: timeout,
 	}
@@ -274,8 +274,11 @@ func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan 
 		if response.Body != nil {
 			defer response.Body.Close()
 			bs, err := ioutil.ReadAll(response.Body)
-			util.Check(err)
-			entry.Body = string(bs)
+			if err != nil {
+				entry.Error = err.Error()
+			} else {
+				entry.Body = string(bs)
+			}
 		}
 		atomic.AddUint32(&fallbackCount, 1)
 	} else {
