@@ -27,6 +27,7 @@ const (
 
 type BaseEntry struct {
 	IP             string
+	Domain         string
 	Timestamp      time.Time
 	Error          string
 	InputEntryType EntryType
