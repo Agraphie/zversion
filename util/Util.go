@@ -17,6 +17,7 @@ import (
 )
 
 const TIMESTAMP_FORMAT = "2006-01-02"
+const TIMESTAMP_FORMAT_SECONDS = "2006-01-02-15:04:05"
 
 const ANALYSIS_OUTPUT_BASE_PATH = "cleanedResults"
 const HTTP_ANALYSIS_OUTPUTH_PATH = "http"
@@ -93,18 +94,35 @@ func WriteEntries(complete chan bool, writeQueue chan []byte, file *os.File) {
 	complete <- true
 }
 
-func WriteStringToFile(wg *sync.WaitGroup, writeQueue chan string, file *os.File) {
+func WriteBytesToFile(wg *sync.WaitGroup, writeQueue chan []byte, file *os.File) {
 	defer file.Close()
 
-	w := io.WriteCloser(file)
+	w := bufio.NewWriter(file)
 
 	for entry := range writeQueue {
-		w.Write([]byte(entry))
+		w.Write(entry)
+		w.WriteString("\n")
 	}
+
+	w.Flush()
 
 	wg.Done()
 }
 
+func WriteStringToFile(wg *sync.WaitGroup, writeQueue chan string, file *os.File) {
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+
+	for entry := range writeQueue {
+		w.WriteString(entry)
+		w.WriteString("\n")
+	}
+
+	w.Flush()
+
+	wg.Done()
+}
 func MakeVersionCanonical(version string) string {
 	canonicalVersion := ""
 	numbersExtract := regexp.MustCompile(`\d*`)

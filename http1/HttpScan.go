@@ -24,7 +24,8 @@ const (
 	HTTP_SCAN_DEFAULT_PORT         = "80"
 	HTTP_SCAN_DEFAULT_SCAN_TARGETS = "10000"
 	HTTP_SCAN_DEFAULT_PPS          = "100000"
-	SCAN_OUTPUT_FILE_NAME          = "zversion_full"
+	SCAN_OUTPUT_FILE_NAME_FULL     = "zversion_full"
+	SCAN_OUTPUT_FILE_NAME_VHOST    = "zversion_vhost"
 	SCAN_ZGRAB_ERROR_FILE_NAME     = "zgrab_error"
 	META_DATA_FILE_NAME            = "scan_meta_data"
 )
@@ -69,6 +70,7 @@ var zgrabRequest string
 var fallbackCount uint32
 var metaDataString string
 var zmapInputFile *string
+var isVHostScan bool
 
 /**
 commands is a map where the key is the timestamp when the scan was launched and the values are all cmds which are
@@ -77,6 +79,7 @@ running for that timestamp. This makes it easier to kill them off.
 func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string, blacklistFile string, inputFile string) {
 	started := time.Now()
 	timestampFormatted := started.Format(util.TIMESTAMP_FORMAT)
+
 	outputPath := filepath.Join(scanOutputPath, HTTP_SCAN_OUTPUTH_PATH, timestampFormatted)
 	if !util.CheckPathExist(outputPath) {
 		err := os.MkdirAll(outputPath, FILE_ACCESS_PERMISSION)
@@ -87,24 +90,45 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 		zmapInputFile = nil
 		launchFullHttpScan(timestampFormatted, outputPath, port, scanTargets, blacklistFile)
 	} else {
+		isVHostScan = checkVHostScan(inputFile)
 		launchRestrictedHttpScan(outputPath, timestampFormatted, port, inputFile)
 	}
 	log.Printf("Http scan done in: %s\n", time.Since(started))
 }
 
 func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port string, inputFile string) {
-	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head", "--input-file", inputFile)
-	c3StdOut, _ := c3.StdoutPipe()
+	var c3 *exec.Cmd
+	if isVHostScan {
+		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req-domain", "--input-file", inputFile)
+	} else {
+		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req", "--input-file", inputFile)
+	}
 
+	c3StdOut, _ := c3.StdoutPipe()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go handleZgrabOutput(outputPath, timestampFormatted, c3StdOut, &wg)
 
 	_ = c3.Start()
-	_ = c3.Wait()
-
-	c3StdOut.Close()
 	wg.Wait()
+
+	_ = c3.Wait()
+}
+
+func checkVHostScan(inputFile string) bool {
+	file, err := os.Open(inputFile)
+	util.Check(err)
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Scan()
+	firstLine := scanner.Text()
+
+	util.Check(scanner.Err())
+
+	splitComma := strings.Split(firstLine, ",")
+
+	return len(splitComma) == 2
 }
 
 func launchFullHttpScan(timestampFormatted string, outputPath string, port string, scanTargets string, blacklistFile string) {
@@ -123,7 +147,7 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	}
 
 	c2 := exec.Command("ztee", filepath.Join(outputPath, nmapOutputFileName))
-	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req-head")
+	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req")
 	//if runningScan != nil {
 	//	runningScan.RunningCommands = append(runningScan.RunningCommands, c1)
 	//	runningScan.RunningCommands = append(runningScan.RunningCommands, c2)
@@ -161,7 +185,13 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 }
 
 func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, wg *sync.WaitGroup) {
-	zgrabOutputFileName := SCAN_OUTPUT_FILE_NAME + "_" + timestampFormatted + ".json"
+	var zgrabOutputFileName string
+	if isVHostScan {
+		zgrabOutputFileName = SCAN_OUTPUT_FILE_NAME_VHOST + "_" + timestampFormatted + ".json"
+	} else {
+		zgrabOutputFileName = SCAN_OUTPUT_FILE_NAME_FULL + "_" + timestampFormatted + ".json"
+	}
+
 	zgrabErrorLog := SCAN_ZGRAB_ERROR_FILE_NAME + "_" + timestampFormatted
 	metaDataFileName := META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
 	metaDataFile, _ := os.Create(filepath.Join(currentScanPath, metaDataFileName))
