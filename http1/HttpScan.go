@@ -72,6 +72,10 @@ var metaDataString string
 var zmapInputFile *string
 var isVHostScan bool
 
+const TIMEOUT_IN_SECONDS = "60"
+const TIMEOUT_IN_SECONDS_INT = 60
+const MAX_KB_TO_READ = "64"
+
 /**
 commands is a map where the key is the timestamp when the scan was launched and the values are all cmds which are
 running for that timestamp. This makes it easier to kill them off.
@@ -90,6 +94,7 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 		zmapInputFile = nil
 		launchFullHttpScan(timestampFormatted, outputPath, port, scanTargets, blacklistFile)
 	} else {
+		zmapInputFile = &inputFile
 		isVHostScan = checkVHostScan(inputFile)
 		launchRestrictedHttpScan(outputPath, timestampFormatted, port, inputFile)
 	}
@@ -99,9 +104,13 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port string, inputFile string) {
 	var c3 *exec.Cmd
 	if isVHostScan {
-		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req-domain", "--input-file", inputFile)
+		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req-domain", "--timeout", TIMEOUT_IN_SECONDS, "--input-file", inputFile, "--http-max-size", MAX_KB_TO_READ)
+		content, _ := ioutil.ReadFile("./http-req-domain")
+		zgrabRequest = string(content)
 	} else {
-		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req", "--input-file", inputFile)
+		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req", "--timeout", TIMEOUT_IN_SECONDS, "--input-file", inputFile, "--http-max-size", MAX_KB_TO_READ)
+		content, _ := ioutil.ReadFile("./http-req")
+		zgrabRequest = string(content)
 	}
 
 	c3StdOut, _ := c3.StdoutPipe()
@@ -147,7 +156,9 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	}
 
 	c2 := exec.Command("ztee", filepath.Join(outputPath, nmapOutputFileName))
-	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req")
+	c3 := exec.Command("zgrab", "--port", port, "--data=./http-req", "--timeout", TIMEOUT_IN_SECONDS, "--http-max-size", MAX_KB_TO_READ)
+	content, _ := ioutil.ReadFile("./http-req")
+	zgrabRequest = string(content)
 	//if runningScan != nil {
 	//	runningScan.RunningCommands = append(runningScan.RunningCommands, c1)
 	//	runningScan.RunningCommands = append(runningScan.RunningCommands, c2)
@@ -169,14 +180,14 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	go handleZgrabOutput(outputPath, timestampFormatted, c3StdOut, &wg)
 	c1.Stderr = io.MultiWriter(zmapErr, os.Stderr)
 
-	_ = c2.Start()
 	_ = c3.Start()
-	_ = c1.Start()
-	wg.Wait()
+	_ = c2.Start()
+	_ = c1.Run()
 
 	_ = c2.Wait()
+	wg.Wait()
 	_ = c3.Wait()
-	_ = c1.Wait()
+	//c3StdOut.Close()
 
 	//finished := time.Now()
 	//if runningScan != nil {
@@ -270,7 +281,7 @@ func writeMetaData(line string, writeQueueMetaData chan []byte) {
 }
 
 func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan []byte) {
-	timeout := time.Duration(15 * time.Second)
+	timeout := time.Duration(TIMEOUT_IN_SECONDS_INT * time.Second)
 	client := http.Client{
 		Timeout: timeout,
 	}
@@ -285,7 +296,9 @@ func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan 
 		entry.Error = ""
 		if response.Body != nil {
 			defer response.Body.Close()
-			bs, err := ioutil.ReadAll(response.Body)
+			bs := make([]byte, 64000)
+			response.Body.Read(bs)
+			//		bs, err := ioutil.ReadAll(response.Body)
 			if err != nil {
 				entry.Error = err.Error()
 			} else {
