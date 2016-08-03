@@ -3,6 +3,7 @@ package ssh
 import (
 	"github.com/agraphie/zversion/util"
 	"regexp"
+	"sync/atomic"
 )
 
 const ONLY_NUMBERS_REGEXP_STRING = `(?:\.\d+)+`
@@ -36,7 +37,8 @@ var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"sshlib":            sshLibRegex,
 }
 
-var notCleaned = 0
+var softwareBannerNotCleaned uint64 = 0
+var softwareBannerCleaned uint64 = 0
 
 func cleanAndAssign(software string, sshEntry *SSHEntry) {
 	numbersMatch := onlyNumbersRegex.FindStringSubmatch(software)
@@ -50,10 +52,11 @@ func cleanAndAssign(software string, sshEntry *SSHEntry) {
 			sshEntry.Vendor = k
 			sshEntry.CanonicalVersion = util.MakeVersionCanonical(version)
 			sshEntry.SoftwareVersion = version
+			atomic.AddUint64(&softwareBannerCleaned, 1)
 
 			return
 		}
 	}
 	sshEntry.Vendor = software
-	notCleaned++
+	atomic.AddUint64(&softwareBannerNotCleaned, 1)
 }

@@ -1,21 +1,25 @@
 package ssh
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/agraphie/zversion/analysis"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 const OUTPUT_FILE_NAME = "ssh_version"
 const ERROR_KEY = "Error"
 const SSH_VERSION_INVALID = "SSH protocol version invalid"
+const SSH_CLEANING_META_DATA_FILE_NAME = "ssh_meta_data.json"
 
 type BaseEntry struct {
 	IP        string
@@ -59,13 +63,27 @@ type SSHVersionResult struct {
 	ProcessedZgrabOutput string
 }
 
+type sshCleanMetaData struct {
+	ServerHeaderCleaned    uint64    `json:"server_headers_cleaned"`
+	ServerHeaderNotCleaned uint64    `json:"server_headers_not_cleaned"`
+	Total                  uint64    `json:"total_processed"`
+	InputFile              string    `json:"input_file"`
+	Started                time.Time `json:"time_started"`
+	Finished               time.Time `json:"time_finished"`
+	Duration               string    `json:"duration"`
+}
+
 func (e SSHEntry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Vendor: %v, Software version: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Vendor, e.SoftwareVersion)
 }
 
+var totalProcessed uint64 = 0
+
 func ParseSSHFile(path string) SSHVersionResult {
 	defer util.TimeTrack(time.Now(), "Processing")
-
+	metaDate := sshCleanMetaData{}
+	metaDate.Started = time.Now()
+	metaDate.InputFile = path
 	log.Println("Start cleaning...")
 
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
@@ -86,11 +104,19 @@ func ParseSSHFile(path string) SSHVersionResult {
 	sshVersionResult.ProcessedZgrabOutput = path
 	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, OUTPUT_FILE_NAME)
 	log.Println("Cleaning finished")
-	log.Printf("Not cleaned: %d\n", notCleaned)
+	log.Printf("Not cleaned: %d\n", softwareBannerNotCleaned)
 
 	log.Println("Start analysis...")
 	analysis.RunSSHAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
 	log.Println("Analysis finished")
+
+	metaDate.Duration = time.Since(metaDate.Started).String()
+
+	metaDate.Finished = time.Now()
+	metaDate.ServerHeaderCleaned = softwareBannerCleaned
+	metaDate.ServerHeaderNotCleaned = softwareBannerNotCleaned
+	metaDate.Total = totalProcessed
+	writeMetDataToFile(metaDate, outputFolderPath)
 
 	return sshVersionResult
 }
@@ -130,6 +156,8 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		if jerr != nil {
 			fmt.Println("jerr:", jerr.Error())
 		}
+		atomic.AddUint64(&totalProcessed, 1)
+
 		writeQueue <- j
 	}
 	complete <- true
@@ -144,4 +172,18 @@ func transform(inputEntry inputEntry) SSHEntry {
 		Error:            inputEntry.Error}
 
 	return sshEntry
+}
+
+func writeMetDataToFile(output sshCleanMetaData, outputPath string) {
+	filePath := filepath.Join(outputPath, SSH_CLEANING_META_DATA_FILE_NAME)
+	f, err := os.Create(filePath)
+	util.Check(err)
+	defer f.Close()
+
+	j, jerr := json.Marshal(output)
+	util.Check(jerr)
+
+	w := bufio.NewWriter(f)
+	w.Write(j)
+	w.Flush()
 }
