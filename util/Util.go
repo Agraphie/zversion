@@ -4,11 +4,14 @@ import (
 	"archive/zip"
 	"bufio"
 	"compress/gzip"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -270,4 +273,32 @@ func Base64Decode(str string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func CalculateSha256(file string) string {
+	isLz4 := regexp.MustCompile(`.*\.lz4`).FindStringSubmatch(file)
+	isGz := regexp.MustCompile(`.*\.gz`).FindStringSubmatch(file)
+	var result []byte
+	var resultString string
+	var err error
+	if isLz4 != nil {
+		cmd := "lz4 -dc " + file + " | sha256sum | awk '{print $1}'"
+		result, err = exec.Command("bash", "-c", cmd).Output()
+		resultString = strings.Replace(string(result), "\n", "", -1)
+	} else if isGz != nil {
+		cmd := "gunzip -dc " + file + " | sha256sum | awk '{print $1}'"
+		result, err = exec.Command("bash", "-c", cmd).Output()
+		resultString = strings.Replace(string(result), "\n", "", -1)
+	} else {
+		sha256 := sha256.New()
+		file, err1 := os.Open(file)
+		Check(err1)
+		defer file.Close()
+		_, errPipe := io.Copy(sha256, file)
+		Check(errPipe)
+		result = sha256.Sum(nil)
+		resultString = hex.EncodeToString(result)
+	}
+	Check(err)
+	return resultString
 }

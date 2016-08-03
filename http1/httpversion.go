@@ -80,6 +80,7 @@ type httpCleanMetaData struct {
 	Started                time.Time `json:"time_started"`
 	Finished               time.Time `json:"time_finished"`
 	Duration               string    `json:"duration"`
+	Sha256SumOfFile        string    `json:"sha256_sum_of_input_file"`
 }
 
 type RawCensysEntry struct {
@@ -164,6 +165,8 @@ func ParseHttpFile(path string) HttpVersionResult {
 	metaDate.ServerHeaderNotCleaned = serverHeaderNotCleaned
 	metaDate.CMSCleaned = cmsCleaned
 	metaDate.Total = totalProcessed
+
+	metaDate.Sha256SumOfFile = util.CalculateSha256(path)
 	writeMetDataToFile(metaDate, outputFolderPath)
 
 	return httpVersionResult
@@ -301,5 +304,6 @@ func writeMetDataToFile(output httpCleanMetaData, outputPath string) {
 
 	w := bufio.NewWriter(f)
 	w.Write(j)
+	w.WriteString("\n")
 	w.Flush()
 }
