@@ -141,7 +141,7 @@ func ParseHttpFile(path string) HttpVersionResult {
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
 	outputFolderPath := filepath.Join(util.ANALYSIS_OUTPUT_BASE_PATH, util.HTTP_ANALYSIS_OUTPUTH_PATH, inputFileName)
-	outputFile := util.CreateOutputJsonFile(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME)
+	outputFile, outputFilePath := util.CreateOutputJsonFile(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME)
 
 	httpVersionResult := HttpVersionResult{}
 	httpVersionResult.Started = time.Now()
@@ -158,7 +158,8 @@ func ParseHttpFile(path string) HttpVersionResult {
 	log.Printf("Not cleaned: %d\n", serverHeaderNotCleaned)
 
 	log.Println("Start analysis...")
-	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
+
+	analysis.RunHTTPAnalyseScripts(outputFilePath, outputFolderPath, nil)
 	log.Println("Analysis finished")
 	metaDate.Duration = time.Since(metaDate.Started).String()
 
@@ -167,7 +168,6 @@ func ParseHttpFile(path string) HttpVersionResult {
 	metaDate.ServerHeaderNotCleaned = serverHeaderNotCleaned
 	metaDate.CMSCleaned = cmsCleaned
 	metaDate.Total = totalProcessed
-	outputFilePath := filepath.Join(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME+".json")
 	metaDate.OutputFile = outputFilePath
 
 	metaDate.Sha256SumOfInputFile = util.CalculateSha256(path)

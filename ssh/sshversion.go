@@ -71,6 +71,9 @@ type sshCleanMetaData struct {
 	Started                time.Time `json:"time_started"`
 	Finished               time.Time `json:"time_finished"`
 	Duration               string    `json:"duration"`
+	Sha256SumOfInputFile   string    `json:"sha256_sum_of_input_file"`
+	Sha256SumOfOutputFile  string    `json:"sha256_sum_of_output_file"`
+	OutputFile             string    `json:"output_file"`
 }
 
 func (e SSHEntry) String() string {
@@ -89,7 +92,7 @@ func ParseSSHFile(path string) SSHVersionResult {
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
 	outputFolderPath := filepath.Join(util.ANALYSIS_OUTPUT_BASE_PATH, util.SSH_ANALYSIS_OUTPUTH_PATH, inputFileName)
-	outputFile := util.CreateOutputJsonFile(outputFolderPath, OUTPUT_FILE_NAME)
+	outputFile, outputFilePath := util.CreateOutputJsonFile(outputFolderPath, OUTPUT_FILE_NAME)
 
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
@@ -116,6 +119,11 @@ func ParseSSHFile(path string) SSHVersionResult {
 	metaDate.ServerHeaderCleaned = softwareBannerCleaned
 	metaDate.ServerHeaderNotCleaned = softwareBannerNotCleaned
 	metaDate.Total = totalProcessed
+	metaDate.OutputFile = outputFilePath
+
+	metaDate.Sha256SumOfInputFile = util.CalculateSha256(path)
+	metaDate.Sha256SumOfOutputFile = util.CalculateSha256(outputFilePath)
+
 	writeMetDataToFile(metaDate, outputFolderPath)
 
 	return sshVersionResult
@@ -185,5 +193,6 @@ func writeMetDataToFile(output sshCleanMetaData, outputPath string) {
 
 	w := bufio.NewWriter(f)
 	w.Write(j)
+	w.WriteString("\n")
 	w.Flush()
 }

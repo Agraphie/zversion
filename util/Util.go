@@ -34,6 +34,19 @@ const CONCURRENCY = 10000
 var HttpBaseOutputDir = filepath.Join(ANALYSIS_OUTPUT_BASE_PATH, HTTP_ANALYSIS_OUTPUTH_PATH)
 var SSHBaseOutputDir = filepath.Join(ANALYSIS_OUTPUT_BASE_PATH, SSH_ANALYSIS_OUTPUTH_PATH)
 
+type CleanMetaData struct {
+	ServerHeaderCleaned    uint64    `json:"server_headers_cleaned"`
+	ServerHeaderNotCleaned uint64    `json:"server_headers_not_cleaned"`
+	Total                  uint64    `json:"total_processed"`
+	InputFile              string    `json:"input_file"`
+	Started                time.Time `json:"time_started"`
+	Finished               time.Time `json:"time_finished"`
+	Duration               string    `json:"duration"`
+	Sha256SumOfInputFile   string    `json:"sha256_sum_of_input_file"`
+	Sha256SumOfOutputFile  string    `json:"sha256_sum_of_output_file"`
+	OutputFile             string    `json:"output_file"`
+}
+
 func CheckPathExist(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -67,16 +80,17 @@ func WriteSummaryFileAsJson(result map[string]int, path string, filename string)
 	w.Flush()
 }
 
-func CreateOutputJsonFile(path string, filename string) *os.File {
+func CreateOutputJsonFile(path string, filename string) (*os.File, string) {
 	if !CheckPathExist(path) {
 		err := os.MkdirAll(path, FILE_ACCESS_PERMISSION)
 		Check(err)
 	}
 
-	f, err := os.Create(filepath.Join(path, filename) + ".json")
+	outputFileName := filepath.Join(path, filename) + ".json"
+	f, err := os.Create(outputFileName)
 	Check(err)
 
-	return f
+	return f, outputFileName
 }
 
 func WriteEntries(complete chan bool, writeQueue chan []byte, file *os.File) {
