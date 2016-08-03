@@ -1,28 +1,32 @@
 package http1
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/agraphie/zversion/analysis"
 	"github.com/agraphie/zversion/util"
 	"github.com/agraphie/zversion/worker"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 type EntryType string
 
 const (
-	NO_AGENT                         = "No server field in header"
-	NO_AGENT_KEY                     = "No server field in header"
-	ERROR_KEY                        = "Error"
-	FILE_ACCESS_PERMISSION           = 0755
-	LEGACY_CENSYS          EntryType = "LegacyCensys"
-	CENSYS                 EntryType = "Censys"
-	RAPID7                 EntryType = "Rapid7"
-	ZVERSION               EntryType = "Zversion"
+	NO_AGENT                                    = "No server field in header"
+	NO_AGENT_KEY                                = "No server field in header"
+	ERROR_KEY                                   = "Error"
+	FILE_ACCESS_PERMISSION                      = 0755
+	LEGACY_CENSYS                     EntryType = "LegacyCensys"
+	CENSYS                            EntryType = "Censys"
+	RAPID7                            EntryType = "Rapid7"
+	ZVERSION                          EntryType = "Zversion"
+	HTTP_CLEANING_META_DATA_FILE_NAME           = "http_meta_data.json"
 )
 
 type BaseEntry struct {
@@ -67,6 +71,17 @@ type RawRapid7Entry struct {
 	Data  string
 }
 
+type httpCleanMetaData struct {
+	ServerHeaderCleaned    uint64    `json:"server_headers_cleaned"`
+	ServerHeaderNotCleaned uint64    `json:"server_headers_not_cleaned"`
+	CMSCleaned             uint64    `json:"cms_cleaned"`
+	Total                  uint64    `json:"total_processed"`
+	InputFile              string    `json:"input_file"`
+	Started                time.Time `json:"time_started"`
+	Finished               time.Time `json:"time_finished"`
+	Duration               string    `json:"duration"`
+}
+
 type RawCensysEntry struct {
 	BaseEntry
 
@@ -107,13 +122,17 @@ type HttpVersionResult struct {
 	ProcessedZgrabOutput string
 }
 
+var totalProcessed uint64 = 0
+
 func (e ZversionEntry) String() string {
 	return fmt.Sprintf("IP: %v, Scanned: %v, Agent: %v", e.BaseEntry.IP, e.BaseEntry.Timestamp, e.Agents)
 }
 
 func ParseHttpFile(path string) HttpVersionResult {
 	defer util.TimeTrack(time.Now(), "Processing")
-
+	metaDate := httpCleanMetaData{}
+	metaDate.Started = time.Now()
+	metaDate.InputFile = path
 	log.Println("Start cleaning...")
 
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
@@ -133,11 +152,19 @@ func ParseHttpFile(path string) HttpVersionResult {
 	httpVersionResult.ProcessedZgrabOutput = path
 	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, util.HTTP_OUTPUT_FILE_NAME)
 	log.Println("Cleaning finished")
-	log.Printf("Not cleaned: %d\n", notCleaned)
+	log.Printf("Not cleaned: %d\n", serverHeaderNotCleaned)
 
 	log.Println("Start analysis...")
 	analysis.RunHTTPAnalyseScripts(filepath.Join(outputFolderPath, util.HTTP_OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
 	log.Println("Analysis finished")
+	metaDate.Duration = time.Since(metaDate.Started).String()
+
+	metaDate.Finished = time.Now()
+	metaDate.ServerHeaderCleaned = serverHeaderCleaned
+	metaDate.ServerHeaderNotCleaned = serverHeaderNotCleaned
+	metaDate.CMSCleaned = cmsCleaned
+	metaDate.Total = totalProcessed
+	writeMetDataToFile(metaDate, outputFolderPath)
 
 	return httpVersionResult
 }
@@ -193,7 +220,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 		if len(writeQueue) == cap(writeQueue) {
 			log.Println("Write queue is full! Blocking routine.")
 		}
-
+		atomic.AddUint64(&totalProcessed, 1)
 		writeQueue <- j
 	}
 	complete <- true
@@ -261,4 +288,18 @@ func findXContentEncodedByField(unknownHeaders []unknownHeaderField) []string {
 	}
 
 	return xContentEncodedBy
+}
+
+func writeMetDataToFile(output httpCleanMetaData, outputPath string) {
+	filePath := filepath.Join(outputPath, HTTP_CLEANING_META_DATA_FILE_NAME)
+	f, err := os.Create(filePath)
+	util.Check(err)
+	defer f.Close()
+
+	j, jerr := json.Marshal(output)
+	util.Check(jerr)
+
+	w := bufio.NewWriter(f)
+	w.Write(j)
+	w.Flush()
 }

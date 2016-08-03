@@ -3,6 +3,7 @@ package http1
 import (
 	"github.com/agraphie/zversion/util"
 	"regexp"
+	"sync/atomic"
 )
 
 const MICROSOFT_IIS_SERVER_REGEX_STRING = `(?i)(?:(?:Microsoft.)?IIS(?:(?:\s|/)(\d+(?:\.\d)(?:\.[1-])?))?)`
@@ -110,7 +111,8 @@ var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 
 var serverFieldRegexp = regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
 
-var notCleaned = 0
+var serverHeaderNotCleaned uint64 = 0
+var serverHeaderCleaned uint64 = 0
 
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	for k, v := range m {
@@ -119,10 +121,12 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 			version := util.AppendZeroToVersion(match[1])
 			canonicalVersion := util.MakeVersionCanonical(version)
 			httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: k, Version: version, CanonicalVersion: canonicalVersion})
+			atomic.AddUint64(&serverHeaderCleaned, 1)
+
 			return
 		}
 	}
 	httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: agentString})
-	notCleaned++
+	atomic.AddUint64(&serverHeaderNotCleaned, 1)
 
 }
