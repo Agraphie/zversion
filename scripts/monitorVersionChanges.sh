@@ -1,5 +1,5 @@
 #!/bin/bash
-nginxVersionUbuntu="1.10.0"
+nginxVersionUbuntu="1.10.1"
 nginxVersionDebian="1.6.2"
 
 apacheVersionUbuntu="2.4.18"
@@ -18,13 +18,6 @@ then
     nginxLatestXenial=$(curl -s https://launchpad.net/ubuntu/xenial/+source/nginx | grep '<h2>Download files from current release' | sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+\).*ubuntu.*/\1/p' | head -n 1)
     apacheLatestXenial=$(curl -s https://launchpad.net/ubuntu/xenial/+source/apache2 | grep '<h2>Download files from current release' | sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+\).*ubuntu.*/\1/p' | head -n 1)
     openSSHServerUbuntu=$(curl -s https://launchpad.net/ubuntu/xenial/+source/openssh | grep '<h2>Download files from current release' | sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+p[[:digit:]]\).*/\1/p' | head -n 1)
-
-    echo "Xenial nginx: $nginxLatestXenial"
-    echo "Jessie nginx: $nginxLatestjessie"
-    echo "Xenial apache: $apacheLatestXenial"
-    echo "Jessie apache: $apacheLatestjessie"
-    echo "Jessie openssh-server: $openSSHServerLatestjessie"
-    echo "Xenial openssh-server: $openSSHUbuntu"
 
     if [ "$nginxVersionUbuntu" !=  "$nginxLatestXenial" ]
     then
