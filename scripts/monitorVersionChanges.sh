@@ -5,38 +5,55 @@ nginxVersionDebian="1.6.2"
 apacheVersionUbuntu="2.4.18"
 apacheVersionDebian="2.4.10"
 
-scanRunning=`ps -e | grep zversion | wc -l`
+openSSHUbuntu="7.2p2"
+openSSHDebian="6.7p1"
+scanRunning=$(pgrep -c zversion)
 
 if [ "$scanRunning" -le 1 ]
 then
-    #backup
-    mv /etc/apt/sources.list /etc/apt/sources.list.3421temp.bak
+    nginxLatestjessie=$(curl -s https://packages.debian.org/jessie/nginx-full | grep '<li><a href="http://ftp-master.metadata.debian.org/changelogs//main/n/nginx/' |  sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+\).*/\1/p' | head -n 1)
+    apacheLatestjessie=$(curl -s https://packages.debian.org/jessie/apache2 | grep '<li><a href="http://ftp-master.metadata.debian.org/changelogs//main/a/apache2/' |  sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+\).*/\1/p'| head -n 1)
+    openSSHServerLatestjessie=$(curl -s https://packages.debian.org/jessie/openssh-server | grep '<li><a href="http://ftp-master.metadata.debian.org/changelogs//main/o/openssh/' |  sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+p[[:digit:]]\).*/\1/p' | head -n 1)
 
-    #create sources.list for debian jessie, just in case
-    echo "deb http://httpredir.debian.org/debian jessie main" > /etc/apt/sources.list
+    nginxLatestXenial=$(curl -s https://launchpad.net/ubuntu/xenial/+source/nginx | grep '<h2>Download files from current release' | sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+\).*ubuntu.*/\1/p' | head -n 1)
+    apacheLatestXenial=$(curl -s https://launchpad.net/ubuntu/xenial/+source/apache2 | grep '<h2>Download files from current release' | sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+\).*ubuntu.*/\1/p' | head -n 1)
+    openSSHServerUbuntu=$(curl -s https://launchpad.net/ubuntu/xenial/+source/openssh | grep '<h2>Download files from current release' | sed -n  's/.*\([[:digit:]]\+\.[[:digit:]]\+p[[:digit:]]\).*/\1/p' | head -n 1)
 
-    apt-get -qq update
+    echo "Xenial nginx: $nginxLatestXenial"
+    echo "Jessie nginx: $nginxLatestjessie"
+    echo "Xenial apache: $apacheLatestXenial"
+    echo "Jessie apache: $apacheLatestjessie"
+    echo "Jessie openssh-server: $openSSHServerLatestjessie"
+    echo "Xenial openssh-server: $openSSHUbuntu"
 
-    nginxLatestjessie=`apt-cache show nginx-common | grep Version | head -n 1 | egrep -o '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1`
-    apacheLatestjessie=`apt-cache show apache2 | grep Version | head -n 1 | egrep -o '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1`
-
-    #create sources.list for Ubuntu Xenial, just in case
-    echo "deb http://de.archive.ubuntu.com/ubuntu xenial main restricted" > /etc/apt/sources.list
-    echo "deb http://security.ubuntu.com/ubuntu xenial-security main restricted" >> /etc/apt/sources.list
-
-
-    apt-get -qq update
-    nginxLatestXenial=`apt-cache show nginx-common | grep Version | head -n 1 | egrep -o '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1`
-    apacheLatestXenial=`apt-cache show apache2 | grep Version | head -n 1 | egrep -o '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1`
-
-    #move backup back
-    mv /etc/apt/sources.list.3421temp.bak /etc/apt/sources.list
-
-    #update cache again correctly
-    apt-get -qq update
-
-    if [ "$nginxVersionUbuntu" !=  "$nginxLatestXenial" ] || [ "$nginxVersionDebian" !=  "$nginxLatestjessie" ] || [ "$apacheVersionUbuntu" !=  "$apacheLatestXenial" ] || [ "$apacheVersionDebian" !=  "$apacheLatestjessie" ]
+    if [ "$nginxVersionUbuntu" !=  "$nginxLatestXenial" ]
     then
-        ./zversion -hs -bf zmap_blacklist&
+        echo "Expected version $nginxVersionUbuntu but got $nginxLatestXenial for Ubuntu"
     fi
+
+    if [ "$nginxVersionDebian" !=  "$nginxLatestjessie" ]
+    then
+            echo "Expected version $nginxVersionDebian but got $nginxLatestjessie for Debian"
+    fi
+
+    if [ "$apacheVersionUbuntu" !=  "$apacheLatestXenial" ]
+    then
+            echo "Expected version $apacheVersionUbuntu but got $apacheLatestXenial for Ubuntu"
+    fi
+
+    if  [ "$openSSHUbuntu" !=  "$openSSHServerUbuntu" ]
+    then
+            echo "Expected version $openSSHUbuntu but got $openSSHServerUbuntu for Ubuntu"
+    fi
+
+    if  [ "$apacheVersionDebian" !=  "$apacheLatestjessie" ]
+    then
+            echo "Expected version $apacheVersionDebian but got $apacheLatestjessie for Debian"
+    fi
+
+    if  [ "$openSSHDebian" !=  "$openSSHServerLatestjessie" ]
+    then
+            echo "Expected version $openSSHDebian but got $openSSHServerLatestjessie for Debian"
+    fi
+
 fi
