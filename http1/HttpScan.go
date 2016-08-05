@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -29,6 +28,7 @@ const (
 	SCAN_ZGRAB_ERROR_FILE_NAME     = "zgrab_error"
 	ZVERSION_META_DATA_FILE_NAME   = "zversion_scan_meta_data"
 	ZMAP_META_DATA_FILE_NAME       = "zmap_scan_meta_data.json"
+	ZMAP_STATUS_UPDATES_FILE_NAME  = "zmap_status_updates.csv"
 )
 
 type RunningHttpScan struct {
@@ -75,8 +75,8 @@ var metaDataString string
 var zmapInputFile *string
 var isVHostScan bool
 
-const TIMEOUT_IN_SECONDS = "15"
-const TIMEOUT_IN_SECONDS_INT = 15
+const TIMEOUT_IN_SECONDS = "60"
+const TIMEOUT_IN_SECONDS_INT = 60
 const MAX_KB_TO_READ = "64"
 
 /**
@@ -159,7 +159,6 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	var cmdZmapString string = "sudo zmap -p " + port + " -n " + scanTargets + " -r " + HTTP_SCAN_DEFAULT_PPS + " -m " + filepath.Join(outputPath, ZMAP_META_DATA_FILE_NAME)
 
 	if blacklistFile != "null" {
-		log.Println("Blacklist!")
 		//cmdZmapZteeString = "sudo zmap -p " + port + " -n " + scanTargets + " -r " + HTTP_SCAN_DEFAULT_PPS + " | ztee " + filepath.Join(outputPath, nmapOutputFileName)
 		cmdZmapString += " -b " + blacklistFile
 		//c1 = exec.Command("sudo", "zmap", "-p", port, "-n", scanTargets, "-r", HTTP_SCAN_DEFAULT_PPS)
@@ -189,12 +188,16 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 	//c3StdOut, _ := scanCmd.StdoutPipe()
 
-	scanCmd.Stderr = os.Stderr
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 	reader, writer := io.Pipe()
+	readerErrOut, writerErrOut := io.Pipe()
+
 	scanCmd.Stdout = writer
+	scanCmd.Stderr = writerErrOut
+
 	go handleZgrabOutput(outputPath, timestampFormatted, reader, &wg)
+	go progressAndLogZmap(readerErrOut, &wg)
 	//c1.Stderr = io.MultiWriter(zmapErr, os.Stderr)
 	runErr := scanCmd.Run()
 	util.Check(runErr)
@@ -204,7 +207,8 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 
 	readerErr := reader.Close()
 	util.Check(readerErr)
-
+	readerErr1 := readerErrOut.Close()
+	util.Check(readerErr1)
 	wg.Wait()
 }
 
@@ -234,10 +238,10 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 	stdOutScanner := bufio.NewScanner(stdOut)
 
 	var wgWorkers sync.WaitGroup
-	wgWorkers.Add(util.CONCURRENCY)
+	wgWorkers.Add(util.SCAN_CONCURRENCY)
 	workQueue := make(chan string, 100000)
 	//start workers
-	for i := 0; i < util.CONCURRENCY; i++ {
+	for i := 0; i < util.SCAN_CONCURRENCY; i++ {
 		go workOnZgrabOutputLine(workQueue, &wgWorkers, writeQueueErr, writeQueueOut)
 	}
 
@@ -361,14 +365,13 @@ func progressZgrab(zmapStdOut io.ReadCloser, zgrabStdOut io.ReadCloser, runningS
 	}
 }
 
-func progressAndLogZmap(reader io.ReadCloser, logWriter io.Writer, runningScan *RunningHttpScan) {
+func progressAndLogZmap(reader io.ReadCloser, wg *sync.WaitGroup) {
 	in := bufio.NewScanner(reader)
 
 	for in.Scan() {
-		logWriter.Write(in.Bytes())
-		logWriter.Write([]byte("\n"))
-		progress := strings.Fields(in.Text())[2]
-		progressNoPercent := strings.Split(progress, "%")[0]
-		runningScan.ProgressZmap, _ = strconv.ParseFloat(progressNoPercent, 64)
+		if !strings.Contains(in.Text(), "banner-grab") {
+			os.Stderr.WriteString(in.Text() + "\n")
+		}
 	}
+	wg.Done()
 }
