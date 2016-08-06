@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/ssh"
 	"log"
 	"os"
 	"sort"
@@ -17,6 +19,7 @@ var (
 	newFile          = flag.String("new-file", "", "The new file to compare")
 	serverVendor     = flag.String("server-vendor", "", "The server vendor to look for")
 	cmsVendor        = flag.String("cms-vendor", "", "The CMS vendor to look for")
+	sshVendor        = flag.String("ssh-vendor", "", "The SSH vendor to look for")
 	canonicalVersion = flag.String("version", "", "The version in canonical form")
 )
 
@@ -25,6 +28,7 @@ func init() {
 	flag.StringVar(newFile, "nf", "", "The new file to compare")
 	flag.StringVar(serverVendor, "sv", "", "The server vendor to look for")
 	flag.StringVar(cmsVendor, "cv", "", "The CMS vendor to look for")
+	flag.StringVar(sshVendor, "sshv", "", "The SSH vendor to look for")
 	flag.StringVar(canonicalVersion, "v", "", "The version in canonical form")
 
 	flag.Parse()
@@ -32,7 +36,7 @@ func init() {
 }
 
 func main() {
-	fmt.Println(*serverVendor + *cmsVendor + " upgraded from versions in " + *oldFile + " to version " + *canonicalVersion + " in " + *newFile)
+	fmt.Println(*serverVendor + *cmsVendor + *sshVendor + " upgraded from versions in " + *oldFile + " to version " + *canonicalVersion + " in " + *newFile)
 
 	entries := map[string]string{}
 	sum := map[string]int{}
@@ -49,11 +53,12 @@ func main() {
 	scanner.Buffer(buf, 1024*1024)
 
 	var entry http1.ZversionEntry
+	var sshEntry ssh.SSHEntry
 	for scanner.Scan() {
-		line := scanner.Text()
-		json.Unmarshal([]byte(line), &entry)
+		line := scanner.Bytes()
 
 		if *cmsVendor != "" {
+			json.Unmarshal(line, &entry)
 			if len(entry.CMS) > 0 {
 				for _, v := range entry.CMS {
 
@@ -63,7 +68,9 @@ func main() {
 					}
 				}
 			}
-		} else {
+		} else if *serverVendor != "" {
+			json.Unmarshal(line, &entry)
+
 			if len(entry.Agents) > 0 {
 				for _, v := range entry.Agents {
 					if v.Vendor == *serverVendor && v.CanonicalVersion == *canonicalVersion {
@@ -72,6 +79,15 @@ func main() {
 					}
 				}
 			}
+		} else if *sshVendor != "" {
+			json.Unmarshal(line, &sshEntry)
+
+			if sshEntry.Vendor == *sshVendor && sshEntry.CanonicalVersion == *canonicalVersion {
+				updateCount++
+				entries[sshEntry.IP] = sshEntry.SoftwareVersion
+			}
+		} else {
+			panic(errors.New("I don't understand..."))
 		}
 	}
 
@@ -89,8 +105,8 @@ func main() {
 	scanner1.Buffer(buf, 1024*1024)
 
 	for scanner1.Scan() {
-		line := scanner1.Text()
-		json.Unmarshal([]byte(line), &entry)
+		line := scanner1.Bytes()
+		json.Unmarshal(line, &entry)
 
 		if _, ok := entries[entry.IP]; ok {
 			if *cmsVendor != "" {
@@ -102,7 +118,7 @@ func main() {
 						}
 					}
 				}
-			} else {
+			} else if *serverVendor != "" {
 				if len(entry.Agents) > 0 {
 					for _, v := range entry.Agents {
 						if v.Vendor == *serverVendor {
@@ -111,6 +127,14 @@ func main() {
 						}
 					}
 				}
+			} else if *sshVendor != "" {
+				json.Unmarshal(line, &sshEntry)
+				if sshEntry.Vendor == *sshVendor {
+					sum[sshEntry.SoftwareVersion]++
+					asn[entry.ASId+"("+entry.ASOwner+")"]++
+				}
+			} else {
+				panic(errors.New("I don't understand..."))
 			}
 		}
 	}
