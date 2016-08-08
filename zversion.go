@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	portFlag       = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
+	httpPortFlag   = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
 	scanTargets    = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	scanInputFile  = flag.String("scan-input", "", "An input file containing one IP or URL per line which will be scanned. If none specified, a full scan will be launched.")
@@ -30,14 +30,16 @@ var (
 	isHttpScan         = flag.Bool("http-scan", false, "Whether a HTTP scan should be launched")
 	isHttpAnalysis     = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
 	isSSHAnalysis      = flag.Bool("ssh-analysis", false, "Whether a SSH analysis should be launched")
-	rerunScripts       = flag.String("run-scripts", "", "Rerun all scripts on target or all cleaned files")
+	isSSHScan          = flag.Bool("ssh-scan", false, "Whether a SSH scan should be launched")
+
+	rerunScripts = flag.String("run-scripts", "", "Rerun all scripts on target or all cleaned files")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
 const RERUN_SCRIPTS_ON_ALL_CLEANED_FILES_FLAG = "all"
 
 func init() {
-	flag.StringVar(portFlag, "p", "80", "The port to scan")
+	flag.StringVar(httpPortFlag, "p", "80", "The port to scan")
 	flag.StringVar(scanTargets, "t", "100%", "How many targets should be scanned, absolute or percentage value")
 	flag.StringVar(scanOutputPath, "so", "scanResults/", "File path to output scan results")
 	flag.StringVar(scanInputFile, "si", "", "An input file containing one IP or URL per line which will be scanned. If none specified, a full scan will be launched.")
@@ -50,6 +52,7 @@ func init() {
 	flag.BoolVar(isHttpScan, "hs", false, "Whether a HTTP scan should be launched")
 	flag.BoolVar(isHttpAnalysis, "ha", false, "Whether a HTTP analysis should be launched")
 	flag.BoolVar(isSSHAnalysis, "sa", false, "Whether a SSH analysis should be launched")
+	flag.BoolVar(isSSHScan, "ssh", false, "Whether a SSH scan should be launched")
 
 	flag.Parse()
 
@@ -67,7 +70,20 @@ func main() {
 				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *scanInputFile)
 			} else {
 				fmt.Println("Launching HTTP scan...")
-				http1.LaunchHttpScan(nil, *scanOutputPath, *portFlag, *scanTargets, *blacklistPath, *scanInputFile)
+				http1.LaunchHttpScan(nil, *scanOutputPath, *httpPortFlag, *scanTargets, *blacklistPath, *scanInputFile)
+			}
+		} else {
+			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
+		}
+	} else if *isSSHScan {
+		if *blacklistPath != "" || *scanInputFile != "" {
+			if (*blacklistPath != "null" && !util.CheckPathExist(*blacklistPath)) && *scanInputFile == "" {
+				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *blacklistPath)
+			} else if *scanInputFile != "" && !util.CheckPathExist(*scanInputFile) {
+				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *scanInputFile)
+			} else {
+				fmt.Println("Launching SSH scan...")
+				ssh.LaunchSSHScan(*scanOutputPath, *httpPortFlag, *scanTargets, *blacklistPath, *scanInputFile)
 			}
 		} else {
 			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
