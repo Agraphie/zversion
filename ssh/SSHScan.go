@@ -78,7 +78,7 @@ const FILE_ACCESS_PERMISSION = 0755
 
 func LaunchSSHScan(scanOutputPath string, port string, scanTargets string, blacklistFile string, inputFile string) {
 	started := time.Now()
-	timestampFormatted := started.Format(util.TIMESTAMP_FORMAT)
+	timestampFormatted := started.Format(util.TIMESTAMP_FORMAT_SECONDS)
 
 	outputPath := filepath.Join(scanOutputPath, SSH_SCAN_OUTPUTH_PATH, timestampFormatted)
 	if !util.CheckPathExist(outputPath) {
