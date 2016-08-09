@@ -108,7 +108,7 @@ func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
 	metaDataFile := filepath.Join(outputPath, metaDataFileName)
 
-	cmdScanString := "zgrab --ssh --port " + port + " --timeout " + TIMEOUT_IN_SECONDS + " --output-file=" + outputFile + " --metadata-file=" + metaDataFile + " --input-file=" + inputFile
+	cmdScanString := "zgrab --ssh --port " + port + " --senders 2500 --timeout " + TIMEOUT_IN_SECONDS + " --output-file=" + outputFile + " --metadata-file=" + metaDataFile + " --input-file=" + inputFile
 
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 	var wg sync.WaitGroup
