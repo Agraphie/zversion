@@ -66,8 +66,8 @@ type MetaData struct {
 var zmapInputFile *string
 var isVHostScan bool
 
-const TIMEOUT_IN_SECONDS = "60"
-const TIMEOUT_IN_SECONDS_INT = 60
+const TIMEOUT_IN_SECONDS = "5"
+const TIMEOUT_IN_SECONDS_INT = 5
 const MAX_KB_TO_READ = "64"
 
 /**
