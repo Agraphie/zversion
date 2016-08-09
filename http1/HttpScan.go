@@ -80,8 +80,8 @@ var isVHostScan bool
 const TIMEOUT_IN_SECONDS_FIRST_TRY = "10"
 const TIMEOUT_IN_SECONDS_FIRST_TRY_INT = 10
 
-const TIMEOUT_IN_SECONDS_SECOND_TRY = "60"
-const TIMEOUT_IN_SECONDS_SECOND_TRY_INT = 60
+const TIMEOUT_IN_SECONDS_SECOND_TRY = "15"
+const TIMEOUT_IN_SECONDS_SECOND_TRY_INT = 15
 const MAX_KB_TO_READ = "64"
 
 /**
@@ -152,6 +152,8 @@ func checkVHostScan(inputFile string) bool {
 	return len(splitComma) == 2
 }
 
+var zgrabDone bool
+
 func launchFullHttpScan(timestampFormatted string, outputPath string, port string, scanTargets string, blacklistFile string) {
 	nmapOutputFileName := "zmap_output_" + timestampFormatted + ".csv"
 
@@ -206,7 +208,8 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	//c1.Stderr = io.MultiWriter(zmapErr, os.Stderr)
 	runErr := scanCmd.Run()
 	util.Check(runErr)
-
+	zgrabDone = true
+	log.Println("cmd done")
 	//err := scanCmd.Run()
 	//util.Check(err)
 
@@ -218,6 +221,8 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 }
 
 func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, wg *sync.WaitGroup) {
+	stdOutScanner := bufio.NewScanner(stdOut)
+
 	var zgrabOutputFileName string
 	if isVHostScan {
 		zgrabOutputFileName = SCAN_OUTPUT_FILE_NAME_VHOST + "_" + timestampFormatted + ".json"
@@ -234,8 +239,8 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 	successfulFallbackIPs, _ := os.Create(filepath.Join(currentScanPath, ZVERSION_SUCCESSFUL_FALLBACK_IPS))
 
 	writeQueueErr := make(chan []byte, 10000)
-	writeQueueOut := make(chan string, 10000)
-	writeQueueIPs := make(chan string, 1000)
+	writeQueueOut := make(chan string, 100000)
+	writeQueueIPs := make(chan string, 10000)
 
 	var wgWriters sync.WaitGroup
 	wgWriters.Add(3)
@@ -243,18 +248,30 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 	go util.WriteStringToFile(&wgWriters, writeQueueOut, zgrabOut)
 	go util.WriteStringToFile(&wgWriters, writeQueueIPs, successfulFallbackIPs)
 
-	stdOutScanner := bufio.NewScanner(stdOut)
-
 	var wgWorkers sync.WaitGroup
-	wgWorkers.Add(util.SCAN_CONCURRENCY)
-	workQueue := make(chan string, 100000)
-	//start workers
-	for i := 0; i < util.SCAN_CONCURRENCY; i++ {
-		go workOnZgrabOutputLine(workQueue, &wgWorkers, writeQueueErr, writeQueueOut, writeQueueIPs)
-	}
+	wgWorkers.Add(10)
+	workQueue := make(chan string, 1000000)
 
-	for stdOutScanner.Scan() {
-		workQueue <- stdOutScanner.Text()
+	//wait until queue is filled up
+	go func() {
+		time.Sleep(10 * time.Second)
+		//start workers
+		for i := 0; i < 10; i++ {
+			go workOnZgrabOutputLine(workQueue, &wgWorkers, writeQueueErr, writeQueueOut, writeQueueIPs)
+		}
+	}()
+
+	for {
+		stdOutScanner.Scan()
+		if stdOutScanner.Text() != "" {
+			workQueue <- stdOutScanner.Text()
+			if cap(workQueue) == len(workQueue) {
+				log.Println("Work queue is full!")
+			}
+		}
+		if zgrabDone {
+			break
+		}
 	}
 
 	close(workQueue)
@@ -265,30 +282,32 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 	close(writeQueueIPs)
 
 	wgWriters.Wait()
+	log.Println("Zgrab routines working on lines are done")
+
 	writeMetaData(metaDataString, outputFile, metaDataFile)
 
-	log.Println("Zgrab routines working on lines are done")
 	wg.Done()
 
 }
 
 func workOnZgrabOutputLine(workQueue chan string, wg *sync.WaitGroup, writeQueueErr chan []byte, writeQueueOut chan string, writeQueueIPs chan string) {
+	var wgConnections sync.WaitGroup
 	for line := range workQueue {
 		if strings.Contains(line, "success_count") {
 			metaDataString = line
 			continue
 		}
 
-		u := RawZversionEntry{}
-		json.Unmarshal([]byte(line), &u)
-		if u.Error != "" {
-			handleZgrabError(u, writeQueueOut, writeQueueErr, writeQueueIPs)
+		if strings.Contains(line, `},"error":"`) {
+			wgConnections.Add(1)
+			go handleZgrabError(line, writeQueueOut, writeQueueErr, writeQueueIPs, &wgConnections)
+			//writeQueueOut <- line
 		} else {
 			writeQueueOut <- line
 		}
 
 	}
-
+	wgConnections.Wait()
 	wg.Done()
 }
 
@@ -296,7 +315,7 @@ func writeMetaData(line string, outputFile string, metaDateFile *os.File) {
 	defer metaDateFile.Close()
 	var metaData MetaData
 	json.Unmarshal([]byte(line), &metaData)
-
+	log.Println(metaData)
 	timeNow := time.Now()
 	timeThen, err := time.Parse("2006-01-02T15:04:05-07:00", metaData.Start_time)
 	util.Check(err)
@@ -324,39 +343,51 @@ func writeMetaData(line string, outputFile string, metaDateFile *os.File) {
 	os.Stdout.WriteString(string(j) + "\n")
 }
 
-func handleZgrabError(entry RawZversionEntry, outFile chan string, errFile chan []byte, writeQueueIPs chan string) {
-	timeout := time.Duration(TIMEOUT_IN_SECONDS_SECOND_TRY_INT * time.Second)
-	client := http.Client{
-		Timeout: timeout,
-	}
-	response, err := client.Get("http://" + entry.BaseEntry.IP)
-	if err == nil {
-		for _, v := range response.Header["Server"] {
-			entry.Data.Read += "\r\n" + "Server: " + v
-		}
-		if entry.Data.Read != "" {
-			entry.Data.Read += "\r\n"
-		}
-		entry.Error = ""
-		if response.Body != nil {
-			defer response.Body.Close()
-			bs := make([]byte, 64000)
-			response.Body.Read(bs)
+//TODO: adjust for vHost scan!
+func handleZgrabError(entryString string, outFile chan string, errFile chan []byte, writeQueueIPs chan string, wg *sync.WaitGroup) {
+	entry := RawZversionEntry{}
+	json.Unmarshal([]byte(entryString), &entry)
 
-			if err != nil {
-				entry.Error = err.Error()
-			} else {
-				entry.Body = string(bs)
+	if entry.Error != "" {
+		timeout := time.Duration(TIMEOUT_IN_SECONDS_SECOND_TRY_INT * time.Second)
+		client := http.Client{
+			Timeout: timeout,
+		}
+		response, err := client.Get("http://" + entry.BaseEntry.IP)
+		if err == nil {
+			for _, v := range response.Header["Server"] {
+				entry.Data.Read += "\r\n" + "Server: " + v
 			}
+			if entry.Data.Read != "" {
+				entry.Data.Read += "\r\n"
+			}
+			entry.Error = ""
+			if response.Body != nil {
+				defer response.Body.Close()
+				bs := make([]byte, 64000)
+				//response.Body.Read(bs)
+				meh := bufio.NewReader(response.Body)
+				meh.Read(bs)
+				if err != nil {
+					entry.Error = err.Error()
+				} else {
+					entry.Body = string(bs)
+				}
+			}
+			if cap(writeQueueIPs) == len(writeQueueIPs) {
+				log.Println("Write queue is full!")
+			}
+			writeQueueIPs <- entry.BaseEntry.IP
+			atomic.AddUint32(&fallbackCount, 1)
+		} else {
+			errFile <- []byte(entry.BaseEntry.IP + ": " + entry.Error)
 		}
-		writeQueueIPs <- entry.BaseEntry.IP
-		atomic.AddUint32(&fallbackCount, 1)
-	} else {
-		errFile <- []byte(entry.BaseEntry.IP + ": " + entry.Error)
+
+		j, _ := json.Marshal(entry)
+		outFile <- string(j)
 	}
 
-	j, _ := json.Marshal(entry)
-	outFile <- string(j)
+	wg.Done()
 }
 
 func progressZgrab(zmapStdOut io.ReadCloser, zgrabStdOut io.ReadCloser, runningScan *RunningHttpScan) {
