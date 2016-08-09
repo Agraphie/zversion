@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -112,11 +113,11 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port string, inputFile string) {
 	var c3 *exec.Cmd
 	if isVHostScan {
-		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req-domain", "--timeout", TIMEOUT_IN_SECONDS_FIRST_TRY, "--input-file", inputFile)
+		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req-domain", " --senders 2500 --timeout", TIMEOUT_IN_SECONDS_FIRST_TRY, "--input-file", inputFile)
 		content, _ := ioutil.ReadFile("./http-req-domain")
 		zgrabRequest = string(content)
 	} else {
-		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req", "--timeout", TIMEOUT_IN_SECONDS_FIRST_TRY, "--input-file", inputFile)
+		c3 = exec.Command("zgrab", "--port", port, "--data=./http-req", " --senders 2500 --timeout", TIMEOUT_IN_SECONDS_FIRST_TRY, "--input-file", inputFile)
 		content, _ := ioutil.ReadFile("./http-req")
 		zgrabRequest = string(content)
 	}
@@ -174,7 +175,9 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	cmdZmapZteeString := cmdZmapString + " | ztee " + filepath.Join(outputPath, nmapOutputFileName)
 
 	//c2 := exec.Command("ztee", filepath.Join(outputPath, nmapOutputFileName))
-	cmdScanString := cmdZmapZteeString + " | zgrab --port " + port + " --data=./http-req --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY
+	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
+
+	cmdScanString := cmdZmapZteeString + " | zgrab --port " + port + " --data=./http-req --senders 2500 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --output-file=" + filepath.Join(outputPath, getZgrabOutputFilename(timestampFormatted)) + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
 	//c3 := exec.Command("zgrab", "--port", port, "--data=./http-req", "--timeout", TIMEOUT_IN_SECONDS)
 	content, _ := ioutil.ReadFile("./http-req")
 	zgrabRequest = string(content)
@@ -193,48 +196,47 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	//c2.Stdin, _ = c1.StdoutPipe()
 	//c3.Stdin, _ = c2.StdoutPipe()
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
-	//c3StdOut, _ := scanCmd.StdoutPipe()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
-	reader, writer := io.Pipe()
+	wg.Add(1)
+	//reader, writer := io.Pipe()
 	readerErrOut, writerErrOut := io.Pipe()
-
-	scanCmd.Stdout = writer
+	//
+	//scanCmd.Stdout = writer
 	scanCmd.Stderr = writerErrOut
-
-	go handleZgrabOutput(outputPath, timestampFormatted, reader, &wg)
+	//
+	//go handleZgrabOutput(outputPath, timestampFormatted, reader, &wg)
 	go progressAndLogZmap(readerErrOut, &wg)
 	//c1.Stderr = io.MultiWriter(zmapErr, os.Stderr)
 	runErr := scanCmd.Run()
 	util.Check(runErr)
 	zgrabDone = true
 	log.Println("cmd done")
-	//err := scanCmd.Run()
-	//util.Check(err)
 
-	readerErr := reader.Close()
-	util.Check(readerErr)
+	//
+	//readerErr := reader.Close()
+	//util.Check(readerErr)
 	readerErr1 := readerErrOut.Close()
 	util.Check(readerErr1)
 	wg.Wait()
 }
-
-func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, wg *sync.WaitGroup) {
-	stdOutScanner := bufio.NewScanner(stdOut)
-
+func getZgrabOutputFilename(timestampFormatted string) string {
 	var zgrabOutputFileName string
 	if isVHostScan {
 		zgrabOutputFileName = SCAN_OUTPUT_FILE_NAME_VHOST + "_" + timestampFormatted + ".json"
 	} else {
 		zgrabOutputFileName = SCAN_OUTPUT_FILE_NAME_FULL + "_" + timestampFormatted + ".json"
 	}
+	return zgrabOutputFileName
+}
+func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut io.ReadCloser, wg *sync.WaitGroup) {
+	stdOutScanner := bufio.NewScanner(stdOut)
 
 	zgrabErrorLog := SCAN_ZGRAB_ERROR_FILE_NAME + "_" + timestampFormatted
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
 	metaDataFile, _ := os.Create(filepath.Join(currentScanPath, metaDataFileName))
 	zgrabErr, _ := os.Create(filepath.Join(currentScanPath, zgrabErrorLog))
-	outputFile := filepath.Join(currentScanPath, zgrabOutputFileName)
+	outputFile := filepath.Join(currentScanPath, getZgrabOutputFilename(timestampFormatted))
 	zgrabOut, _ := os.Create(outputFile)
 	successfulFallbackIPs, _ := os.Create(filepath.Join(currentScanPath, ZVERSION_SUCCESSFUL_FALLBACK_IPS))
 
@@ -260,7 +262,7 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 			go workOnZgrabOutputLine(workQueue, &wgWorkers, writeQueueErr, writeQueueOut, writeQueueIPs)
 		}
 	}()
-
+	go periodicFree(5 * time.Minute)
 	for {
 		stdOutScanner.Scan()
 		if stdOutScanner.Text() != "" {
@@ -270,10 +272,12 @@ func handleZgrabOutput(currentScanPath string, timestampFormatted string, stdOut
 			}
 		}
 		if zgrabDone {
+			log.Println("Zgrab said done")
 			break
 		}
 	}
 
+	log.Println("reading stdout done")
 	close(workQueue)
 	wgWorkers.Wait()
 
@@ -309,6 +313,7 @@ func workOnZgrabOutputLine(workQueue chan string, wg *sync.WaitGroup, writeQueue
 	}
 	wgConnections.Wait()
 	wg.Done()
+	log.Println("Worker done")
 }
 
 func writeMetaData(line string, outputFile string, metaDateFile *os.File) {
@@ -342,6 +347,8 @@ func writeMetaData(line string, outputFile string, metaDateFile *os.File) {
 
 	os.Stdout.WriteString(string(j) + "\n")
 }
+
+const IP_REGEX = `((?:\d{1,3}\.){3}\d{1,3})`
 
 //TODO: adjust for vHost scan!
 func handleZgrabError(entryString string, outFile chan string, errFile chan []byte, writeQueueIPs chan string, wg *sync.WaitGroup) {
@@ -388,6 +395,13 @@ func handleZgrabError(entryString string, outFile chan string, errFile chan []by
 	}
 
 	wg.Done()
+}
+
+func periodicFree(d time.Duration) {
+	tick := time.Tick(d)
+	for _ = range tick {
+		debug.FreeOSMemory()
+	}
 }
 
 func progressZgrab(zmapStdOut io.ReadCloser, zgrabStdOut io.ReadCloser, runningScan *RunningHttpScan) {
