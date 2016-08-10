@@ -67,6 +67,7 @@ type MetaData struct {
 	ScanInputFile    *string `json:"input_file"`
 	ScanOutputFile   string  `json:"output_file"`
 	Sha256OutputFile string  `json:"sha256_sum_of_output_file"`
+	Sha256InputFile  string  `json:"sha256_sum_of_input_file"`
 }
 
 var zgrabRequest string
@@ -100,6 +101,12 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 		zmapInputFile = nil
 		launchFullHttpScan(timestampFormatted, outputPath, port, scanTargets, blacklistFile)
 	} else {
+		fileNameSplit := strings.Split(inputFile, "/")
+		fileName := fileNameSplit[len(fileNameSplit)-1]
+		cpCmd := exec.Command("cp", inputFile, outputPath)
+		err := cpCmd.Run()
+		util.Check(err)
+		inputFile = filepath.Join(outputPath, fileName)
 		zmapInputFile = &inputFile
 		isVHostScan = checkVHostScan(inputFile)
 		launchRestrictedHttpScan(outputPath, timestampFormatted, port, inputFile)
@@ -110,25 +117,23 @@ func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port st
 func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port string, inputFile string) {
 	var cmdScanData string
 	if isVHostScan {
-		cmdScanData = "--data=./http-req-domain"
+		cmdScanData = " --data=./http-req-domain"
 		content, _ := ioutil.ReadFile("./http-req-domain")
 		zgrabRequest = string(content)
 	} else {
-		cmdScanData = "--data=./http-req-domain"
+		cmdScanData = " --data=./http-req"
 		content, _ := ioutil.ReadFile("./http-req")
 		zgrabRequest = string(content)
 	}
 
 	outputFile := filepath.Join(outputPath, getZgrabOutputFilename(timestampFormatted))
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
-	cmdScanString := "zgrab " + cmdScanData + " --senders 2500 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
+	cmdScanString := "zgrab --port " + port + cmdScanData + " --senders 2500 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 	scanCmd.Stderr = os.Stderr
-	var wg sync.WaitGroup
-	wg.Add(1)
+
 	runErr := scanCmd.Run()
 	util.Check(runErr)
-	wg.Wait()
 
 	metaDataFile := filepath.Join(outputPath, metaDataFileName)
 	enhanceMetaData(metaDataFile, outputFile)
@@ -321,19 +326,23 @@ func getZgrabOutputFilename(timestampFormatted string) string {
 
 func enhanceMetaData(metaDateFile string, outputFile string) {
 	metaDataString, errFile := ioutil.ReadFile(metaDateFile)
+
 	util.Check(errFile)
 	var metaData MetaData
-	json.Unmarshal([]byte(metaDataString), &metaData)
+	json.Unmarshal(metaDataString, &metaData)
 
 	metaData.ScanInputFile = zmapInputFile
 	metaData.ScanOutputFile = outputFile
 	metaData.Sha256OutputFile = util.CalculateSha256(outputFile)
+	metaData.Sha256InputFile = util.CalculateSha256(*zmapInputFile)
 	j, _ := json.Marshal(metaData)
-	file, fileErr := os.Open(metaDateFile)
+	file, fileErr := os.OpenFile(metaDateFile, os.O_RDWR, FILE_ACCESS_PERMISSION)
 	util.Check(fileErr)
 	defer file.Close()
+
 	file.Write(j)
 	file.WriteString("\n")
+	file.Sync()
 
 	os.Stdout.WriteString(string(j) + "\n")
 }
