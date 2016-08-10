@@ -99,10 +99,13 @@ func WriteEntries(complete chan bool, writeQueue chan []byte, file *os.File) {
 
 	w := bufio.NewWriter(file)
 	//w.WriteString("{\n[\n")
+	var err error
 
 	for entry := range writeQueue {
-		w.Write(entry)
-		w.WriteString("\n")
+		_, err = w.Write(entry)
+		Check(err)
+		_, err = w.WriteString("\n")
+		Check(err)
 	}
 
 	//w.WriteString("\n]\n}\n")
@@ -116,10 +119,13 @@ func WriteBytesToFile(wg *sync.WaitGroup, writeQueue chan []byte, file *os.File)
 	defer file.Close()
 
 	w := bufio.NewWriter(file)
+	var err error
 
 	for entry := range writeQueue {
-		w.Write(entry)
-		w.WriteString("\n")
+		_, err = w.Write(entry)
+		Check(err)
+		_, err = w.WriteString("\n")
+		Check(err)
 	}
 
 	w.Flush()
@@ -131,10 +137,12 @@ func WriteStringToFile(wg *sync.WaitGroup, writeQueue chan string, file *os.File
 	defer file.Close()
 
 	w := bufio.NewWriter(file)
-
+	var err error
 	for entry := range writeQueue {
-		w.WriteString(entry)
-		w.WriteString("\n")
+		_, err = w.WriteString(entry)
+		Check(err)
+		_, err = w.WriteString("\n")
+		Check(err)
 	}
 
 	w.Flush()
