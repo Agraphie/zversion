@@ -11,6 +11,7 @@ const APACHE_SERVER_REGEX_STRING = `(?i)(?:Apache(?:(?:\s|/)(\d+(?:\.\d+){0,2}(?
 
 const BASE_REGEX = `(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}))?)`
 const LIGHTHTTPD_SERVER_REGEX_STRING = `(?i)(?:lighttpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const NGINX_CLOUDFLARE_SERVER_REGEX_STRING = `(?i)(?:cloudflare-nginx` + BASE_REGEX
 const NGINX_SERVER_REGEX_STRING = `(?i)(?:nginx` + BASE_REGEX
 const ATS_SERVER_REGEX_STRING = `(?i)(?:ATS` + BASE_REGEX
 const BOA_SERVER_REGEX_STRING = `(?i)(?:boa(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,2}(?:(?:rc)\d+)?))?)`
@@ -45,6 +46,7 @@ const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
 var microsoftIISRegex = regexp.MustCompile(MICROSOFT_IIS_SERVER_REGEX_STRING)
 var apacheRegex = regexp.MustCompile(APACHE_SERVER_REGEX_STRING)
+var nginxCloudflareRegex = regexp.MustCompile(NGINX_CLOUDFLARE_SERVER_REGEX_STRING)
 var nginxRegex = regexp.MustCompile(NGINX_SERVER_REGEX_STRING)
 var lighttpdRegex = regexp.MustCompile(LIGHTHTTPD_SERVER_REGEX_STRING)
 var atsRegex = regexp.MustCompile(ATS_SERVER_REGEX_STRING)
@@ -77,12 +79,13 @@ var kangleRegex = regexp.MustCompile(KANGLE_SERVER_REGEX_STRING)
 var thttpdRegex = regexp.MustCompile(THTTPD_SERVER_REGEX_STRING)
 
 var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
-	"Microsoft-IIS": microsoftIISRegex,
-	"Apache":        apacheRegex,
-	"nginx":         nginxRegex,
-	"lighttpd":      lighttpdRegex,
-	"ATS":           atsRegex,
-	"BOA":           boaRegex,
+	"Microsoft-IIS":    microsoftIISRegex,
+	"Apache":           apacheRegex,
+	"cloudflare-nginx": nginxCloudflareRegex,
+	"nginx":            nginxRegex,
+	"lighttpd":         lighttpdRegex,
+	"ATS":              atsRegex,
+	"BOA":              boaRegex,
 	"Allegro Software RomPager": allegroSoftwareRomPagerRegex,
 	"AllegroServe":              allegroServeRegex,
 	"squid":                     squidRegex,
@@ -117,6 +120,9 @@ var serverHeaderCleaned uint64 = 0
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 	for k, v := range m {
 		match := v.FindStringSubmatch(agentString)
+		if k == "nginx" && nginxCloudflareRegex.FindStringSubmatch(agentString) != nil {
+			k = "cloudflare-nginx"
+		}
 		if match != nil {
 			version := util.AppendZeroToVersion(match[1])
 			canonicalVersion := util.MakeVersionCanonical(version)
