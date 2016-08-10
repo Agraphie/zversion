@@ -38,8 +38,6 @@ type SSHEntry struct {
 	GeoData          util.GeoData
 	ASId             string
 	ASOwner          string
-	OS               string
-	OSVersion        string
 }
 
 type inputEntry struct {
@@ -50,7 +48,7 @@ type inputEntry struct {
 				Raw_banner       string
 				Protocol_version string
 				Software_version string
-				comments         string
+				Comments         string
 			}
 		}
 	}
@@ -176,7 +174,7 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 func transform(inputEntry inputEntry) SSHEntry {
 	sshEntry := SSHEntry{
 		Protocol_version: inputEntry.Data.SSH.Server_protocol.Protocol_version,
-		Comments:         inputEntry.Data.SSH.Server_protocol.comments,
+		Comments:         inputEntry.Data.SSH.Server_protocol.Comments,
 		Raw_banner:       inputEntry.Data.SSH.Server_protocol.Raw_banner,
 		BaseEntry:        inputEntry.BaseEntry,
 		Error:            inputEntry.Error}
