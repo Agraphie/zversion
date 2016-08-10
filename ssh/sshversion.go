@@ -38,6 +38,8 @@ type SSHEntry struct {
 	GeoData          util.GeoData
 	ASId             string
 	ASOwner          string
+	OS               string
+	OSVersion        string
 }
 
 type inputEntry struct {

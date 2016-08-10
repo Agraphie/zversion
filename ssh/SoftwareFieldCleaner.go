@@ -15,6 +15,7 @@ const COREFTP_REGEXP_STRING = `(?i)(?:(?:CoreFTP)(?:(?:\s|/|_)(\d+(?:\.\d+){0,2}
 const APPGATE_REGEXP_STRING = `(?i)(?:(?:AppGateSSH)(?:(?:\s|/|_)(\d+(?:\.\d+){0,2}))?)`
 const TECTIA_SERVER_REGEXP_STRING = `(?i)((\d+\.?)+)(?:\sSSH\sTectia\sServer)`
 const SSHLIB_REGEXP_STRING = `(?i)((\d+\.?)+)(?:.sshlib)`
+const DEBIAN_REGEX_STRING = `(?i)(?:debian)-(\d+)\+`
 
 var onlyNumbersRegex = regexp.MustCompile(ONLY_NUMBERS_REGEXP_STRING)
 var openSSHRegex = regexp.MustCompile(OPENSSH_REGEXP_STRING)
@@ -25,6 +26,7 @@ var coreFTPRegx = regexp.MustCompile(COREFTP_REGEXP_STRING)
 var appGateSSHRegx = regexp.MustCompile(APPGATE_REGEXP_STRING)
 var tectiaServerRegex = regexp.MustCompile(TECTIA_SERVER_REGEXP_STRING)
 var sshLibRegex = regexp.MustCompile(SSHLIB_REGEXP_STRING)
+var debianRegex = regexp.MustCompile(DEBIAN_REGEX_STRING)
 
 var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"OpenSSH":           openSSHRegex,
@@ -59,4 +61,16 @@ func cleanAndAssign(software string, sshEntry *SSHEntry) {
 	}
 	sshEntry.Vendor = software
 	atomic.AddUint64(&softwareBannerNotCleaned, 1)
+}
+
+func assignDebianOrUbuntu(software string, sshEntry *SSHEntry) {
+	debianMatch := debianRegex.FindStringSubmatch(software)
+	ubuntuMatch := debianRegex.FindStringSubmatch(software)
+
+	if debianMatch != nil {
+		sshEntry.OS = "Debian"
+		sshEntry.OSVersion = debianMatch[1]
+	} else if ubuntuMatch != nil {
+
+	}
 }
