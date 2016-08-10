@@ -131,6 +131,7 @@ func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port
 	cmdScanString := "zgrab --port " + port + cmdScanData + " --senders 2500 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 	scanCmd.Stderr = os.Stderr
+	scanCmd.Stdout = os.Stdout
 
 	runErr := scanCmd.Run()
 	util.Check(runErr)

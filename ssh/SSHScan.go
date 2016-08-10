@@ -90,6 +90,12 @@ func LaunchSSHScan(scanOutputPath string, port string, scanTargets string, black
 		zmapInputFile = nil
 		launchFullHttpScan(timestampFormatted, outputPath, port, scanTargets, blacklistFile)
 	} else {
+		fileNameSplit := strings.Split(inputFile, "/")
+		fileName := fileNameSplit[len(fileNameSplit)-1]
+		cpCmd := exec.Command("cp", inputFile, outputPath)
+		err := cpCmd.Run()
+		util.Check(err)
+		inputFile = filepath.Join(outputPath, fileName)
 		zmapInputFile = &inputFile
 		isVHostScan = checkVHostScan(inputFile)
 		launchRestrictedHttpScan(outputPath, timestampFormatted, port, inputFile)
@@ -111,18 +117,10 @@ func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port
 	cmdScanString := "zgrab --ssh --port " + port + " --senders 2500 --timeout " + TIMEOUT_IN_SECONDS + " --output-file=" + outputFile + " --metadata-file=" + metaDataFile + " --input-file=" + inputFile
 
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	readerErrOut, writerErrOut := io.Pipe()
-	scanCmd.Stderr = writerErrOut
-
-	go progressAndLogZmap(readerErrOut, &wg)
+	scanCmd.Stderr = os.Stderr
+	scanCmd.Stdout = os.Stdout
 	runErr := scanCmd.Run()
 	util.Check(runErr)
-
-	readerErr1 := readerErrOut.Close()
-	util.Check(readerErr1)
-	wg.Wait()
 	enhanceMetaData(metaDataFile, outputFile)
 }
 
