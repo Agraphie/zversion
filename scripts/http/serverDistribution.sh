@@ -34,7 +34,8 @@ majorServerVendors=(
 	"PRTG"
 	"Kangle"
 	"AkamaiGHost"
-	"thttpd")
+	"thttpd"
+	"cloudflare-nginx")
 
 total=`wc -l < $1`
 
