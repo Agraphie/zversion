@@ -335,7 +335,9 @@ func enhanceMetaData(metaDateFile string, outputFile string) {
 	metaData.ScanInputFile = zmapInputFile
 	metaData.ScanOutputFile = outputFile
 	metaData.Sha256OutputFile = util.CalculateSha256(outputFile)
-	metaData.Sha256InputFile = util.CalculateSha256(*zmapInputFile)
+	if *zmapInputFile != nil {
+		metaData.Sha256InputFile = util.CalculateSha256(*zmapInputFile)
+	}
 	j, _ := json.Marshal(metaData)
 	file, fileErr := os.OpenFile(metaDateFile, os.O_RDWR, FILE_ACCESS_PERMISSION)
 	util.Check(fileErr)

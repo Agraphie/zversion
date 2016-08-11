@@ -61,6 +61,7 @@ type MetaData struct {
 	ScanInputFile    *string `json:"input_file"`
 	ScanOutputFile   string  `json:"output_file"`
 	Sha256OutputFile string  `json:"sha256_sum_of_output_file"`
+	Sha256InputFile  string  `json:"sha256_sum_of_input_file"`
 }
 
 var zmapInputFile *string
@@ -186,6 +187,9 @@ func enhanceMetaData(metaDateFile string, outputFile string) {
 	util.Check(errFile)
 	var metaData MetaData
 	json.Unmarshal([]byte(metaDataString), &metaData)
+	if *zmapInputFile != nil {
+		metaData.Sha256InputFile = util.CalculateSha256(*zmapInputFile)
+	}
 	metaData.ScanInputFile = zmapInputFile
 	metaData.ScanOutputFile = outputFile
 	metaData.Sha256OutputFile = util.CalculateSha256(outputFile)
