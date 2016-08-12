@@ -35,7 +35,11 @@ majorServerVendors=(
 	"Kangle"
 	"AkamaiGHost"
 	"thttpd"
-	"cloudflare-nginx")
+	"cloudflare-nginx"
+	"gws"
+	"LiteSpeed"
+	"Cowboy"
+	"Varnish")
 
 total=`wc -l < $1`
 
@@ -46,6 +50,6 @@ do
     vendorCount=0
     vendorCount=`grep "$i" $1 | jq --arg vendor "$i" '.Agents[] | select(.Vendor == $vendor) | .Vendor' |  wc -l`
 
-    printf '%s\n' "$i: $vendorCount"
+    printf '%s\n' "$i: $vendorCount ($(awk "BEGIN {printf \"%.2f\n\", 100/$total*$vendorCount}")%)"
 done
 printf '%s\n' '----------------------------------------------'

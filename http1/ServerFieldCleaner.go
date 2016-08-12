@@ -41,6 +41,7 @@ const MBEDTHIS_SERVER_REGEX_STRING = `(?i)(?:Mbedthis` + BASE_REGEX
 const PRTG_SERVER_REGEX_STRING = `(?i)(?:PRTG(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
 const KANGLE_SERVER_REGEX_STRING = `(?i)(?:Kangle(?:(?:\s|/|-)(?:.*(?:\s|/|-))?(\d+(?:\.\d+){0,3}))?)`
 const THTTPD_SERVER_REGEX_STRING = `(?i)(?:thttpd(?:(?:\s|/|-)(\d+(?:\.\d+){0,2}))?)`
+const VARNISH_SERVER_REGEX_STRING = `(?i)(?:varnish` + BASE_REGEX
 
 const SERVER_FIELD_REGEXP_STRING = `(?:(?:\r\n)Server:\s(.*)\r\n)`
 
@@ -77,6 +78,7 @@ var mbedthisRegex = regexp.MustCompile(MBEDTHIS_SERVER_REGEX_STRING)
 var prtgRegex = regexp.MustCompile(PRTG_SERVER_REGEX_STRING)
 var kangleRegex = regexp.MustCompile(KANGLE_SERVER_REGEX_STRING)
 var thttpdRegex = regexp.MustCompile(THTTPD_SERVER_REGEX_STRING)
+var varnishRegex = regexp.MustCompile(VARNISH_SERVER_REGEX_STRING)
 
 var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"Microsoft-IIS":    microsoftIISRegex,
@@ -110,6 +112,7 @@ var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"PRTG":                      prtgRegex,
 	"Kangle":                    kangleRegex,
 	"thttpd":                    thttpdRegex,
+	"Varnish":                   varnishRegex,
 }
 
 var serverFieldRegexp = regexp.MustCompile(SERVER_FIELD_REGEXP_STRING)
