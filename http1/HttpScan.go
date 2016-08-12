@@ -128,7 +128,7 @@ func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port
 
 	outputFile := filepath.Join(outputPath, getZgrabOutputFilename(timestampFormatted))
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
-	cmdScanString := "zgrab --port " + port + cmdScanData + " --senders 2500 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
+	cmdScanString := "zgrab --port " + port + cmdScanData + " --senders 2500 --http-max-size 3072 --tls --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 	scanCmd.Stderr = os.Stderr
 	scanCmd.Stdout = os.Stdout
@@ -172,7 +172,7 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
 	outputFile := filepath.Join(outputPath, getZgrabOutputFilename(timestampFormatted))
 
-	cmdScanString := cmdZmapZteeString + " | zgrab --port " + port + " --data=./http-req --senders 2500 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
+	cmdScanString := cmdZmapZteeString + " | zgrab --port " + port + " --data=./http-req --tls --senders 2500 --http-max-size 3072 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
 	content, _ := ioutil.ReadFile("./http-req")
 	zgrabRequest = string(content)
 

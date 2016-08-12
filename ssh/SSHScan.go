@@ -163,7 +163,7 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
 	metaDataFile := filepath.Join(outputPath, metaDataFileName)
 
-	cmdScanString := cmdZmapZteeString + " | zgrab --ssh --port " + port + " --timeout " + TIMEOUT_IN_SECONDS + " --output-file=" + outputFile + " --metadata-file=" + metaDataFile
+	cmdScanString := cmdZmapZteeString + " | zgrab --ssh --senders 2500 --port " + port + " --timeout " + TIMEOUT_IN_SECONDS + " --output-file=" + outputFile + " --metadata-file=" + metaDataFile
 
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 
