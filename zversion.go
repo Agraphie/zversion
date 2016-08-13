@@ -31,8 +31,8 @@ var (
 	isHttpAnalysis     = flag.Bool("http-analysis", false, "Whether a HTTP analysis should be launched")
 	isSSHAnalysis      = flag.Bool("ssh-analysis", false, "Whether a SSH analysis should be launched")
 	isSSHScan          = flag.Bool("ssh-scan", false, "Whether a SSH scan should be launched")
-
-	rerunScripts = flag.String("run-scripts", "", "Rerun all scripts on target or all cleaned files")
+	tls                = flag.Bool("tls", false, "Whether TLS should be used")
+	rerunScripts       = flag.String("run-scripts", "", "Rerun all scripts on target or all cleaned files")
 )
 
 const FILE_ACCESS_PERMISSION = 0755
@@ -70,7 +70,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *scanInputFile)
 			} else {
 				fmt.Println("Launching HTTP scan...")
-				http1.LaunchHttpScan(nil, *scanOutputPath, *httpPortFlag, *scanTargets, *blacklistPath, *scanInputFile)
+				http1.LaunchHttpScan(nil, *scanOutputPath, *httpPortFlag, *scanTargets, *blacklistPath, *scanInputFile, *tls)
 			}
 		} else {
 			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")

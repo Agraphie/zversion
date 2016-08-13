@@ -75,6 +75,7 @@ var fallbackCount uint32
 var metaDataString string
 var zmapInputFile *string
 var isVHostScan bool
+var useTls bool
 
 const TIMEOUT_IN_SECONDS_FIRST_TRY = "10"
 const TIMEOUT_IN_SECONDS_FIRST_TRY_INT = 10
@@ -87,10 +88,10 @@ const MAX_KB_TO_READ = "64"
 commands is a map where the key is the timestamp when the scan was launched and the values are all cmds which are
 running for that timestamp. This makes it easier to kill them off.
 */
-func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string, blacklistFile string, inputFile string) {
+func LaunchHttpScan(runningScan *RunningHttpScan, scanOutputPath string, port string, scanTargets string, blacklistFile string, inputFile string, tls bool) {
 	started := time.Now()
 	timestampFormatted := started.Format(util.TIMESTAMP_FORMAT_SECONDS)
-
+	useTls = tls
 	outputPath := filepath.Join(scanOutputPath, HTTP_SCAN_OUTPUTH_PATH, timestampFormatted)
 	if !util.CheckPathExist(outputPath) {
 		err := os.MkdirAll(outputPath, FILE_ACCESS_PERMISSION)
@@ -128,7 +129,7 @@ func launchRestrictedHttpScan(outputPath string, timestampFormatted string, port
 
 	outputFile := filepath.Join(outputPath, getZgrabOutputFilename(timestampFormatted))
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
-	cmdScanString := "zgrab --port " + port + cmdScanData + " --senders 2500 --http-max-size 3072 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
+	cmdScanString := "zgrab --port " + port + cmdScanData + tlsFlag() + " --senders 2500 --http-max-size 3072 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --input-file " + inputFile + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
 	scanCmd := exec.Command("bash", "-c", cmdScanString)
 	scanCmd.Stderr = os.Stderr
 	scanCmd.Stdout = os.Stdout
@@ -172,7 +173,7 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	metaDataFileName := ZVERSION_META_DATA_FILE_NAME + "_" + timestampFormatted + ".json"
 	outputFile := filepath.Join(outputPath, getZgrabOutputFilename(timestampFormatted))
 
-	cmdScanString := cmdZmapZteeString + " | zgrab --port " + port + " --data=./http-req --senders 2500 --http-max-size 3072 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName)
+	cmdScanString := cmdZmapZteeString + " | zgrab --port " + port + " --data=./http-req --senders 2500 --http-max-size 3072 --timeout " + TIMEOUT_IN_SECONDS_FIRST_TRY + " --output-file=" + outputFile + " --metadata-file=" + filepath.Join(outputPath, metaDataFileName) + tlsFlag()
 	content, _ := ioutil.ReadFile("./http-req")
 	zgrabRequest = string(content)
 
@@ -196,6 +197,18 @@ func launchFullHttpScan(timestampFormatted string, outputPath string, port strin
 	metaDataFile := filepath.Join(outputPath, metaDataFileName)
 	enhanceMetaData(metaDataFile, outputFile)
 }
+
+func tlsFlag() string {
+	var result string
+	if useTls {
+		result = " --tls "
+	} else {
+		result = ""
+	}
+
+	return result
+}
+
 func getZgrabOutputFilename(timestampFormatted string) string {
 	var zgrabOutputFileName string
 	if isVHostScan {
