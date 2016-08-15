@@ -2,7 +2,7 @@
 #Output filename: major_server_vendor_distribution
 printf "Script name: $0\n"
 printf "Input file: $1\n"
-printf '%s\n' '----------------------------------------------'
+printf '%s\n' '------------------------------------------------------------------------'
 majorServerVendors=(
     "Microsoft-IIS"
 	"Apache"
@@ -36,10 +36,13 @@ majorServerVendors=(
 	"AkamaiGHost"
 	"thttpd"
 	"cloudflare-nginx"
+    "yunjiasu-nginx"
 	"gws"
 	"LiteSpeed"
 	"Cowboy"
-	"Varnish")
+	"Varnish"
+	""
+	"No server field in header")
 
 total=`wc -l < $1`
 totalNoErrors=`jq 'select(.Error == "") | .IP' $1 | wc -l`
@@ -52,6 +55,6 @@ do
     vendorCount=0
     vendorCount=`grep "$i" $1 | jq --arg vendor "$i" '.Agents[] | select(.Vendor == $vendor) | .Vendor' |  wc -l`
 
-    printf '%s\n' "$i: $vendorCount ($(awk "BEGIN {printf \"%.2f\n\", 100/$totalNoErrors*$vendorCount}")% of no errors)"
+    printf '%s\n' "$i: $vendorCount ($(awk "BEGIN {printf \"%.2f\n\", 100/$total*$vendorCount}")% of total, $(awk "BEGIN {printf \"%.2f\n\", 100/$totalNoErrors*$vendorCount}")% of no errors)"
 done
-printf '%s\n' '----------------------------------------------'
+printf '%s\n' '------------------------------------------------------------------------'
