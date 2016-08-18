@@ -14,3 +14,4 @@ printf '\nTotal Version 1.10 <= Version < 1.11: %s' "$total1_10"
 printf '\nTotal Version >= 1.11: %s' "$total1_11"
 printf  '\nTotal: %s\n' "`jq 'select(.Agents[].Vendor=="nginx") | .IP' $tmpName | wc -l`"
 printf '%s\n' '-----------------------------------------------------'
+rm $tmpName
