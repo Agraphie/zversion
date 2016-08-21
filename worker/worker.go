@@ -66,12 +66,17 @@ func ParseFile(inputPath string, outputFile *os.File, f func(queue chan string, 
 		//scanner := bufio.NewScanner(file)
 		buf := make([]byte, 0, 64*1024)
 		scanner.Buffer(buf, 1024*1024)
-
+		lineCount := 0
 		for scanner.Scan() {
+			lineCount = lineCount + 1
 			if len(workQueue) == cap(workQueue) {
 				log.Println("Work queue is full! Add more worker routines?")
 			}
-			workQueue <- scanner.Text()
+			if scanner.Text() != "null"{
+				workQueue <- scanner.Text()
+			}else{
+				log.Printf("Found line containing only string 'null' in line %d", lineCount)
+			}
 		}
 
 		if scanner.Err() != nil {

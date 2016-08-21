@@ -140,23 +140,24 @@ func FindGeoData(ip string) GeoData {
 		panic(errors.New("GeoDB(s) have not been initialised! Initialise first."))
 	}
 
-	ipToCheck := net.ParseIP(ip)
-	if ipToCheck.To4() == nil {
-		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ipToCheck)))
-	}
-	var geoData geoData
-
 	registeredCountryCode := "Not found"
 	geolocationCountryCode := "Not found"
 	continent := "Not found"
 
-	err := maxMindGeoDB.Lookup(ipToCheck, &geoData)
-	if err != nil {
-		log.Fatal(err)
+	ipToCheck := net.ParseIP(ip)
+	if ipToCheck.To4() == nil {
+		log.Print(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ipToCheck)))
 	} else {
-		registeredCountryCode = geoData.RegisteredCountry.ISOCode
-		geolocationCountryCode = geoData.GeolocationCountry.ISOCode
-		continent = geoData.Continent.ISOCode
+		var geoData geoData
+
+		err := maxMindGeoDB.Lookup(ipToCheck, &geoData)
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			registeredCountryCode = geoData.RegisteredCountry.ISOCode
+			geolocationCountryCode = geoData.GeolocationCountry.ISOCode
+			continent = geoData.Continent.ISOCode
+		}
 	}
 
 	return GeoData{registeredCountryCode, geolocationCountryCode,

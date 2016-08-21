@@ -82,21 +82,22 @@ func FindAS(ip string) (string, string) {
 	if asnRadixTree == nil {
 		panic(errors.New("ASDB(s) have not been initialised! Initialise first."))
 	}
-	if net.ParseIP(ip).To4() == nil {
-		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ip)))
-	}
-
 	asId := "Not found"
 	asOwner := "Not found"
-	found, udata, err := asnRadixTree.SearchBest(ip)
-	Check(err)
 
-	if found {
-		split := strings.Split(udata, ",")
-		asId = split[0]
-		asOwner = split[1]
+	ipToCheck := net.ParseIP(ip)
+	if ipToCheck.To4() == nil {
+		log.Print(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ipToCheck)))
+	} else {
+		found, udata, err := asnRadixTree.SearchBest(ip)
+		Check(err)
+
+		if found {
+			split := strings.Split(udata, ",")
+			asId = split[0]
+			asOwner = split[1]
+		}
 	}
-
 	return asId, asOwner
 }
 

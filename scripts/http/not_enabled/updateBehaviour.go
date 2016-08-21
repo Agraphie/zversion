@@ -112,7 +112,7 @@ func main() {
 			if *cmsVendor != "" {
 				if len(entry.CMS) > 0 {
 					for _, v := range entry.CMS {
-						if v.Vendor == *cmsVendor {
+						if v.Vendor == *cmsVendor && v.CanonicalVersion != *canonicalVersion{
 							sum[v.Version]++
 							asn[entry.ASId+"("+entry.ASOwner+")"]++
 						}
@@ -121,7 +121,7 @@ func main() {
 			} else if *serverVendor != "" {
 				if len(entry.Agents) > 0 {
 					for _, v := range entry.Agents {
-						if v.Vendor == *serverVendor {
+						if v.Vendor == *serverVendor && v.CanonicalVersion != *canonicalVersion{
 							sum[v.Version]++
 							asn[entry.ASId+"("+entry.ASOwner+")"]++
 						}
@@ -129,7 +129,7 @@ func main() {
 				}
 			} else if *sshVendor != "" {
 				json.Unmarshal(line, &sshEntry)
-				if sshEntry.Vendor == *sshVendor {
+				if sshEntry.Vendor == *sshVendor && sshEntry.CanonicalVersion != *canonicalVersion{
 					sum[sshEntry.SoftwareVersion]++
 					asn[entry.ASId+"("+entry.ASOwner+")"]++
 				}
