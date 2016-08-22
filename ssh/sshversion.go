@@ -28,27 +28,33 @@ type BaseEntry struct {
 
 type SSHEntry struct {
 	BaseEntry
-	Raw_banner       string
-	Protocol_version string
-	Comments         string
-	Vendor           string
-	SoftwareVersion  string
-	CanonicalVersion string
-	Error            string
-	GeoData          util.GeoData
-	ASId             string
-	ASOwner          string
+	Raw_banner        string
+	Protocol_version  string
+	Comments          string
+	Vendor            string
+	SoftwareVersion   string
+	CanonicalVersion  string
+	Error             string
+	GeoData           util.GeoData
+	ASId              string
+	ASOwner           string
+	HostKeyAlgorithms NameList
 }
+type NameList []string
 
 type inputEntry struct {
 	BaseEntry
 	Data struct {
-		SSH struct {
+		Banner string
+		SSH    struct {
 			Server_protocol struct {
 				Raw_banner       string
 				Protocol_version string
 				Software_version string
 				Comments         string
+			}
+			Server_key_exchange_init struct {
+				HostKeyAlgorithms NameList
 			}
 		}
 	}
@@ -135,6 +141,9 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 	for line := range queue {
 		json.Unmarshal([]byte(line), &inputEntry)
+		if inputEntry.Data.Banner != "" {
+			inputEntry.Data.SSH.Server_protocol.Raw_banner = inputEntry.Data.Banner
+		}
 		sshEntry := transform(inputEntry)
 		//Assign country
 		sshEntry.GeoData = util.FindGeoData(sshEntry.IP)
@@ -173,11 +182,12 @@ func workOnLine(queue chan string, complete chan bool, hosts *worker.HostsConcur
 
 func transform(inputEntry inputEntry) SSHEntry {
 	sshEntry := SSHEntry{
-		Protocol_version: inputEntry.Data.SSH.Server_protocol.Protocol_version,
-		Comments:         inputEntry.Data.SSH.Server_protocol.Comments,
-		Raw_banner:       inputEntry.Data.SSH.Server_protocol.Raw_banner,
-		BaseEntry:        inputEntry.BaseEntry,
-		Error:            inputEntry.Error}
+		Protocol_version:  inputEntry.Data.SSH.Server_protocol.Protocol_version,
+		Comments:          inputEntry.Data.SSH.Server_protocol.Comments,
+		Raw_banner:        inputEntry.Data.SSH.Server_protocol.Raw_banner,
+		BaseEntry:         inputEntry.BaseEntry,
+		HostKeyAlgorithms: inputEntry.Data.SSH.Server_key_exchange_init.HostKeyAlgorithms,
+		Error:             inputEntry.Error}
 
 	return sshEntry
 }
