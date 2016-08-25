@@ -156,6 +156,9 @@ func ParseHttpFile(path string) HttpVersionResult {
 	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, util.HTTP_OUTPUT_FILE_NAME)
 	log.Println("Cleaning finished")
 	log.Printf("Not cleaned: %d\n", serverHeaderNotCleaned)
+	log.Printf("WordPress cleaned by path %d\n", wpPath)
+	log.Printf("WordPress cleaned by meta %d\n", wpMetaCleaned)
+	log.Printf("WordPress cleaned by x-content-by %d\n", wpXContendBy)
 
 	log.Println("Start analysis...")
 
