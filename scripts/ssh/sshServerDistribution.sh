@@ -13,7 +13,6 @@ majorServerVendors=(
 	"SSH Tectia Server"
 	"sshlib"
     ""
-	"No server field in header"
 	)
 
 total=`wc -l < $1`
@@ -26,6 +25,6 @@ do
     vendorCount=0
     vendorCount=`grep "$i" $1 | jq --arg vendor "$i" 'select(.Vendor == $vendor) | .Vendor' |  wc -l`
 
-    printf '%s\n' "$i: $vendorCount ($(awk "BEGIN {printf \"%.2f\n\", 100/$total*$vendorCount}")% of total, $(awk "BEGIN {printf \"%.2f\n\", 100/$totalNoErrors*$vendorCount}")% of no errors)"
+    printf '%s\n' "$i: $vendorCount ($(awk "BEGIN {printf \"%.2f\n\", 100/$total*$vendorCount}")% of total)"
 done
-printf '%s\n' '-------------------------------------------------------------------------
+printf '%s\n' '-------------------------------------------------------------------------'

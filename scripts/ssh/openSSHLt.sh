@@ -1,5 +1,5 @@
 #!/bin/bash
-#Output file name: openSSH_CVE_2016-0777_and_2016-0778
+#Output file name: openssh_cve_2016-0777_and_2016-0778
 printf "Script name: $0\n"
 printf "Input file: $1\n"
 printf '%s\n' '----------------------------------------------'
