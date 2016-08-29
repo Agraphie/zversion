@@ -20,8 +20,8 @@ var (
 	serverVendor     = flag.String("server-vendor", "", "The server vendor to look for")
 	cmsVendor        = flag.String("cms-vendor", "", "The CMS vendor to look for")
 	sshVendor        = flag.String("ssh-vendor", "", "The SSH vendor to look for")
-	canonicalVersion = flag.String("version", "", "The version in canonical form")
-	stringVersion    = flag.String("string-version", "", "The version as string")
+	canonicalVersion = flag.String("version", "", "The version in canonical form. Use this for SSH and HTTP")
+	stringVersion    = flag.String("string-version", "", "The version as string. Use only for SSH! Not for HTTP!")
 )
 
 func init() {
@@ -38,7 +38,7 @@ func init() {
 }
 
 func main() {
-	fmt.Println(*serverVendor + *cmsVendor + *sshVendor + " upgraded from versions in " + *oldFile + " to version " + *canonicalVersion + " in " + *newFile)
+	fmt.Println(*serverVendor + *cmsVendor + *sshVendor + " upgraded from versions in " + *oldFile + " to version " + *stringVersion + *canonicalVersion + " in " + *newFile)
 
 	entries := map[string]string{}
 	sum := map[string]int{}
@@ -83,10 +83,18 @@ func main() {
 			}
 		} else if *sshVendor != "" {
 			json.Unmarshal(line, &sshEntry)
-
-			if sshEntry.Vendor == *sshVendor && (sshEntry.CanonicalVersion == *canonicalVersion || sshEntry.SoftwareVersion == *stringVersion) {
-				updateCount++
-				entries[sshEntry.IP] = sshEntry.SoftwareVersion
+			if sshEntry.Vendor == *sshVendor {
+				if *stringVersion != "" {
+					if sshEntry.SoftwareVersion == *stringVersion {
+						updateCount++
+						entries[sshEntry.IP] = sshEntry.SoftwareVersion
+					}
+				} else {
+					if sshEntry.CanonicalVersion == *canonicalVersion {
+						updateCount++
+						entries[sshEntry.IP] = sshEntry.SoftwareVersion
+					}
+				}
 			}
 		} else {
 			panic(errors.New("I don't understand..."))
@@ -131,9 +139,18 @@ func main() {
 				}
 			} else if *sshVendor != "" {
 				json.Unmarshal(line, &sshEntry)
-				if sshEntry.Vendor == *sshVendor && sshEntry.CanonicalVersion != *canonicalVersion {
-					sum[sshEntry.SoftwareVersion]++
-					asn[entry.ASId+"("+entry.ASOwner+")"]++
+				if sshEntry.Vendor == *sshVendor {
+					if *stringVersion != "" {
+						if sshEntry.SoftwareVersion != *stringVersion {
+							sum[sshEntry.SoftwareVersion]++
+							asn[entry.ASId+"("+entry.ASOwner+")"]++
+						}
+					} else {
+						if sshEntry.CanonicalVersion != *canonicalVersion {
+							sum[sshEntry.SoftwareVersion]++
+							asn[entry.ASId+"("+entry.ASOwner+")"]++
+						}
+					}
 				}
 			} else {
 				panic(errors.New("I don't understand..."))

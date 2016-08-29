@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/ssh"
 	"log"
 	"os"
 	"sort"
@@ -16,10 +17,11 @@ var (
 	file         = flag.String("file", "", "The file to analyse")
 	serverVendor = flag.String("server-vendor", "", "The server vendor to look for")
 	cmsVendor    = flag.String("cms-vendor", "", "The CMS vendor to look for")
+	sshSoftware  = flag.String("ssh-software", "", "The SSH software to look for")
 )
 
 func init() {
-	flag.StringVar(file, "f", "", "The old file to compare")
+	flag.StringVar(file, "f", "", "The file to analyse")
 	flag.StringVar(serverVendor, "sv", "", "The server vendor to look for")
 	flag.StringVar(cmsVendor, "cv", "", "The CMS vendor to look for")
 
@@ -28,7 +30,7 @@ func init() {
 }
 
 func main() {
-	fmt.Println(*serverVendor + *cmsVendor + " no version distribution in " + *file)
+	fmt.Println(*sshSoftware + *serverVendor + *cmsVendor + " no version distribution in " + *file)
 
 	asnDistribution := map[string]int{}
 	geoLocationDistribution := map[string]int{}
@@ -45,6 +47,8 @@ func main() {
 	scanner1 := bufio.NewScanner(file1)
 	scanner1.Buffer(buf, 1024*1024)
 	var entry http1.ZversionEntry
+	var sshEntry ssh.SSHEntry
+
 	for scanner1.Scan() {
 		line := scanner1.Text()
 		json.Unmarshal([]byte(line), &entry)
@@ -59,7 +63,7 @@ func main() {
 					}
 				}
 			}
-		} else {
+		} else if *serverVendor != "" {
 			if len(entry.Agents) > 0 {
 				for _, v := range entry.Agents {
 					if v.CanonicalVersion == "" && v.Vendor == *serverVendor {
@@ -68,6 +72,13 @@ func main() {
 						versionUknown++
 					}
 				}
+			}
+		} else if *sshSoftware != "" {
+			json.Unmarshal([]byte(line), &sshEntry)
+			if sshEntry.SoftwareVersion == "" && sshEntry.Vendor == *sshSoftware {
+				geoLocationDistribution[entry.GeoData.RegisteredCountryCode]++
+				asnDistribution[entry.ASId+"("+entry.ASOwner+")"]++
+				versionUknown++
 			}
 		}
 	}

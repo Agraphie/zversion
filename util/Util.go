@@ -26,6 +26,7 @@ const ANALYSIS_OUTPUT_BASE_PATH = "cleanedResults"
 const HTTP_ANALYSIS_OUTPUTH_PATH = "http"
 const SSH_ANALYSIS_OUTPUTH_PATH = "ssh"
 const HTTP_OUTPUT_FILE_NAME = "http_version"
+const SSH_OUTPUT_FILE_NAME = "ssh_version"
 
 const SCAN_OUTPUT_BASE_PATH = "scanResults"
 const FILE_ACCESS_PERMISSION = 0755

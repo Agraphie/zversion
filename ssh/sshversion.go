@@ -16,7 +16,6 @@ import (
 	"time"
 )
 
-const OUTPUT_FILE_NAME = "ssh_version"
 const ERROR_KEY = "Error"
 const SSH_VERSION_INVALID = "SSH protocol version invalid"
 const SSH_CLEANING_META_DATA_FILE_NAME = "ssh_meta_data.json"
@@ -98,7 +97,7 @@ func ParseSSHFile(path string) SSHVersionResult {
 	inputFileNameSplit := strings.Split(path, string(filepath.Separator))
 	inputFileName := strings.Split(inputFileNameSplit[len(inputFileNameSplit)-1], ".")[0]
 	outputFolderPath := filepath.Join(util.ANALYSIS_OUTPUT_BASE_PATH, util.SSH_ANALYSIS_OUTPUTH_PATH, inputFileName)
-	outputFile, outputFilePath := util.CreateOutputJsonFile(outputFolderPath, OUTPUT_FILE_NAME)
+	outputFile, outputFilePath := util.CreateOutputJsonFile(outputFolderPath, util.SSH_OUTPUT_FILE_NAME)
 
 	sshVersionResult := SSHVersionResult{}
 	sshVersionResult.Started = time.Now()
@@ -111,12 +110,12 @@ func ParseSSHFile(path string) SSHVersionResult {
 	sshVersionResult.Finished = time.Now()
 
 	sshVersionResult.ProcessedZgrabOutput = path
-	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, OUTPUT_FILE_NAME)
+	util.WriteSummaryFileAsJson(hosts.M, outputFolderPath, util.SSH_OUTPUT_FILE_NAME)
 	log.Println("Cleaning finished")
 	log.Printf("Not cleaned: %d\n", softwareBannerNotCleaned)
 
 	log.Println("Start analysis...")
-	analysis.RunSSHAnalyseScripts(filepath.Join(outputFolderPath, OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
+	analysis.RunSSHAnalyseScripts(filepath.Join(outputFolderPath, util.SSH_OUTPUT_FILE_NAME+".json"), outputFolderPath, nil)
 	log.Println("Analysis finished")
 
 	metaDate.Duration = time.Since(metaDate.Started).String()

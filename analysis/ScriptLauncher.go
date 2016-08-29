@@ -50,10 +50,10 @@ func RunSSHAnalyseScriptsOnAllOutputs() {
 	for _, f := range cleanedFiles {
 		if f.IsDir() {
 			sshOutputFolder := filepath.Join(util.SSHBaseOutputDir, f.Name())
-			sshOutputFile := filepath.Join(sshOutputFolder, util.HTTP_OUTPUT_FILE_NAME+".json")
+			sshOutputFile := filepath.Join(sshOutputFolder, util.SSH_OUTPUT_FILE_NAME+".json")
 			if util.CheckPathExist(sshOutputFile) {
 				analysisWaitGroup.Add(1)
-				RunHTTPAnalyseScripts(sshOutputFile, sshOutputFolder, &analysisWaitGroup)
+				RunSSHAnalyseScripts(sshOutputFile, sshOutputFolder, &analysisWaitGroup)
 			}
 		}
 	}
@@ -69,8 +69,8 @@ func RunHTTPAnalyseScripts(zVersionHTTPOutputFile string, zVersionOutputFolderPa
 }
 
 func RunSSHAnalyseScripts(zVersionSSHOutputFile string, zVersionOutputFolderPath string, folderAnalysisWaitGroup *sync.WaitGroup) {
-	httpScriptFolder := filepath.Join(SCRIPT_LIBRARY, SCRIPT_LIBRARY_SSH)
-	launchScripts(httpScriptFolder, zVersionSSHOutputFile, zVersionOutputFolderPath)
+	sshScriptFolder := filepath.Join(SCRIPT_LIBRARY, SCRIPT_LIBRARY_SSH)
+	launchScripts(sshScriptFolder, zVersionSSHOutputFile, zVersionOutputFolderPath)
 	if folderAnalysisWaitGroup != nil {
 		folderAnalysisWaitGroup.Done()
 	}

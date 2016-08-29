@@ -114,7 +114,7 @@ func main() {
 		} else if util.CheckPathExist(*rerunScripts) {
 			log.Printf("Analysing file output in folder: %s\n", *rerunScripts)
 			if *isSSHAnalysis {
-				analysis.RunSSHAnalyseScripts(filepath.Join(*rerunScripts, ssh.OUTPUT_FILE_NAME+".json"), *rerunScripts, nil)
+				analysis.RunSSHAnalyseScripts(filepath.Join(*rerunScripts, util.SSH_OUTPUT_FILE_NAME+".json"), *rerunScripts, nil)
 			} else {
 				analysis.RunHTTPAnalyseScripts(filepath.Join(*rerunScripts, util.HTTP_OUTPUT_FILE_NAME+".json"), *rerunScripts, nil)
 			}
