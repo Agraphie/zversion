@@ -48,11 +48,18 @@ func ASUtilInitialise() {
 		downloadMaxMindASLite()
 		Unzip(maxmindAsDBZipFile, AS_FOLDER)
 		os.Remove(maxmindAsDBZipFile)
-	} else if firstTuesdayOfMonth() {
-		os.Remove(maxmindAsDBFile)
-		downloadMaxMindASLite()
-		Unzip(maxmindAsDBZipFile, AS_FOLDER)
-		os.Remove(maxmindAsDBZipFile)
+	} else {
+		info, err := os.Stat(maxmindAsDBFile)
+		Check(err)
+		fileOldMonth := info.ModTime().Month() < time.Now().Month()
+		fileOldDay := info.ModTime().Day() >= SecondTuesday()
+
+		if fileOldMonth || fileOldDay {
+			os.Remove(maxmindAsDBFile)
+			downloadMaxMindASLite()
+			Unzip(maxmindAsDBZipFile, AS_FOLDER)
+			os.Remove(maxmindAsDBZipFile)
+		}
 	}
 	readInMaxMindASDBCSV()
 }

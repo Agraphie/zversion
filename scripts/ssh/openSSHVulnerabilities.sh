@@ -28,7 +28,7 @@ select(.Comments | endswith("6ubuntu1") == false)
 ) | .IP' $tmpName | wc -l)
 
 CVE_2010_4478=$($dir/../jq 'select(.Vendor=="OpenSSH" and .SoftwareVersion != "" and .CanonicalVersion <= "0005000600000000") | .IP' $tmpName | wc -l)
-CVE_2008_3234=$($dir/../jq 'select(.Vendor=="OpenSSH" and .SoftwareVersion == "4.0" and select(.Comments | contains("Debian") and contains("ubuntu") == false) | .IP' $tmpName | wc -l)
+CVE_2008_3234=$($dir/../jq 'select(.Vendor=="OpenSSH" and .SoftwareVersion == "4.0" and select(.Comments | contains("Debian") and contains("ubuntu") == false)) | .IP' $tmpName | wc -l)
 CVE_2008_1657=$($dir/../jq 'select(.Vendor=="OpenSSH" and .CanonicalVersion <= "0004000900000000" and .CanonicalVersion >= "0004000400000000" and
  select(.Comments | endswith("5ubuntu0.6") == false and endswith("8ubuntu1.5") == false and endswith("7ubuntu3.5") == false)) | .IP' $tmpName | wc -l)
 

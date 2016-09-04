@@ -203,6 +203,11 @@ func firstTuesdayOfMonth() bool {
 	return result
 }
 
+func SecondTuesday() int {
+	t := time.Date(2017, 12, 8, 0, 0, 0, 0, time.UTC)
+	return (15-int(t.Weekday()))%14 + 2
+}
+
 func Unzip(src, dest string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {

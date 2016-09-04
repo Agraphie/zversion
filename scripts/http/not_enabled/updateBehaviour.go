@@ -114,11 +114,13 @@ func main() {
 	scanner1 := bufio.NewScanner(file1)
 	scanner1.Buffer(buf, 1024*1024)
 
+	ipsFound := 0
 	for scanner1.Scan() {
 		line := scanner1.Bytes()
 		json.Unmarshal(line, &entry)
 
 		if _, ok := entries[entry.IP]; ok {
+			ipsFound += 1
 			if *cmsVendor != "" {
 				if len(entry.CMS) > 0 {
 					for _, v := range entry.CMS {
@@ -158,6 +160,9 @@ func main() {
 		}
 	}
 
+	notFoundIPsLength := len(entries) - ipsFound
+
+	sum["IPs not found"] = notFoundIPsLength
 	if err1 := scanner1.Err(); err1 != nil {
 		log.Fatal(err1)
 	}

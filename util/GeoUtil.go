@@ -95,12 +95,18 @@ func GeoUtilInitialise() {
 		err := Ungzip(geoFileZipFilePath, GEODB_FOLDER)
 		Check(err)
 		maxMindCleanUp()
-	} else if firstTuesdayOfMonth() {
-		os.Remove(geoFileFilePath)
-		downloadMaxMindGeoLite()
-		err := Ungzip(geoFileZipFilePath, GEODB_FOLDER)
+	} else {
+		info, err := os.Stat(geoFileFilePath)
 		Check(err)
-		maxMindCleanUp()
+		fileOldMonth := info.ModTime().Month() < time.Now().Month()
+		fileOldDay := info.ModTime().Day() >= SecondTuesday()
+		if fileOldMonth || fileOldDay {
+			os.Remove(geoFileFilePath)
+			downloadMaxMindGeoLite()
+			err := Ungzip(geoFileZipFilePath, GEODB_FOLDER)
+			Check(err)
+			maxMindCleanUp()
+		}
 	}
 	//readInMaxMindGeoDBCSV()
 	//sort.Sort(Asc(maxMindGeoDB))
