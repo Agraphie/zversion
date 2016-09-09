@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/agraphie/zversion/analysis"
-	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/http"
 	"github.com/agraphie/zversion/ssh"
 	"github.com/agraphie/zversion/util"
 	"log"
@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	httpPortFlag   = flag.String("port", http1.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
+	httpPortFlag   = flag.String("port", http.HTTP_SCAN_DEFAULT_PORT, "The port to scan")
 	scanTargets    = flag.String("targets", "100%", "How many targets should be scanned, absolute or percentage value")
 	scanOutputPath = flag.String("scan-output", "scanResults/", "File path to output scan result")
 	scanInputFile  = flag.String("scan-input", "", "An input file containing one IP or URL per line which will be scanned. If none specified, a full scan will be launched.")
@@ -70,7 +70,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "File '%s' does not exist or no permission to read it\n", *scanInputFile)
 			} else {
 				fmt.Println("Launching HTTP scan...")
-				http1.LaunchHttpScan(nil, *scanOutputPath, *httpPortFlag, *scanTargets, *blacklistPath, *scanInputFile, *tls)
+				http.LaunchHttpScan(nil, *scanOutputPath, *httpPortFlag, *scanTargets, *blacklistPath, *scanInputFile, *tls)
 			}
 		} else {
 			fmt.Fprintln(os.Stderr, "No blacklist file specified! If really scan without blacklist file type '-bf null' as file path")
@@ -91,7 +91,7 @@ func main() {
 	} else if *isHttpAnalysis && *rerunScripts == "" {
 		if util.CheckPathExist(*analysisInputPath) {
 			log.Printf("Processing file: %s\n", *analysisInputPath)
-			http1.ParseHttpFile(*analysisInputPath)
+			http.ParseHttpFile(*analysisInputPath)
 		} else {
 			fmt.Printf("File '%s' does not exist or no permission to read it\n", *analysisInputPath)
 		}

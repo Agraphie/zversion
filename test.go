@@ -2,7 +2,13 @@ package main
 
 import (
 	"log"
+	"time"
 )
+
+func SecondTuesday() int {
+	t := time.Date(2017, 12, 8, 0, 0, 0, 0, time.UTC)
+	return (15-int(t.Weekday()))%14 + 2
+}
 
 func main() {
 	//client := &http.Client{}
@@ -37,4 +43,5 @@ func main() {
 	if "1.1.03" < "1.1.18" {
 		log.Println("Good!")
 	}
+	println(SecondTuesday())
 }

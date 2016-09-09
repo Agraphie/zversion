@@ -1,4 +1,4 @@
-package http1
+package http
 
 import (
 	"github.com/agraphie/zversion/util"
@@ -88,7 +88,7 @@ var m map[string]*regexp.Regexp = map[string]*regexp.Regexp{
 	"Microsoft-IIS":    microsoftIISRegex,
 	"Apache":           apacheRegex,
 	"cloudflare-nginx": nginxCloudflareRegex,
-	"yunjiasu-nginx": nginxYunjiasuRegex,
+	"yunjiasu-nginx":   nginxYunjiasuRegex,
 	"nginx":            nginxRegex,
 	"lighttpd":         lighttpdRegex,
 	"ATS":              atsRegex,
@@ -130,7 +130,7 @@ func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
 		match := v.FindStringSubmatch(agentString)
 		if k == "nginx" && nginxCloudflareRegex.FindStringSubmatch(agentString) != nil {
 			k = "cloudflare-nginx"
-		} else if k == "nginx" && nginxYunjiasuRegex.FindStringSubmatch(agentString) != nil{
+		} else if k == "nginx" && nginxYunjiasuRegex.FindStringSubmatch(agentString) != nil {
 			k = "yunjiasu-nginx"
 		}
 		if match != nil {

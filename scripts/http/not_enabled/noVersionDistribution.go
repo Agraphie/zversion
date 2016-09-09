@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/http"
 	"github.com/agraphie/zversion/ssh"
 	"log"
 	"os"
@@ -46,7 +46,7 @@ func main() {
 
 	scanner1 := bufio.NewScanner(file1)
 	scanner1.Buffer(buf, 1024*1024)
-	var entry http1.ZversionEntry
+	var entry http.ZversionEntry
 	var sshEntry ssh.SSHEntry
 
 	for scanner1.Scan() {

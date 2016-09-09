@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/agraphie/zversion/http1"
+	"github.com/agraphie/zversion/http"
 	"github.com/agraphie/zversion/ssh"
 	"log"
 	"os"
@@ -22,6 +22,7 @@ var (
 	sshVendor        = flag.String("ssh-vendor", "", "The SSH vendor to look for")
 	canonicalVersion = flag.String("version", "", "The version in canonical form. Use this for SSH and HTTP")
 	stringVersion    = flag.String("string-version", "", "The version as string. Use only for SSH! Not for HTTP!")
+	stableIPs        = flag.String("stable-ips", "", "Path to the file with the stable IPs")
 )
 
 func init() {
@@ -32,13 +33,23 @@ func init() {
 	flag.StringVar(sshVendor, "sshv", "", "The SSH vendor to look for")
 	flag.StringVar(canonicalVersion, "v", "", "The version in canonical form")
 	//	flag.StringVar(stringVersion, "stringv", "", "The version in canonical form")
-
+	flag.StringVar(stableIPs, "si", "", "Path to the file with the stable IPs")
 	flag.Parse()
 
 }
 
 func main() {
 	fmt.Println(*serverVendor + *cmsVendor + *sshVendor + " upgraded from versions in " + *oldFile + " to version " + *stringVersion + *canonicalVersion + " in " + *newFile)
+	ips := make(map[string]string)
+	if *stableIPs != "" {
+		ipsWhole, err := readLines(*stableIPs)
+		if err != nil {
+			panic(err)
+		}
+		for _, value := range ipsWhole {
+			ips[value] = value
+		}
+	}
 
 	entries := map[string]string{}
 	sum := map[string]int{}
@@ -54,16 +65,20 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(buf, 1024*1024)
 
-	var entry http1.ZversionEntry
+	var entry http.ZversionEntry
 	var sshEntry ssh.SSHEntry
 	for scanner.Scan() {
 		line := scanner.Bytes()
 
 		if *cmsVendor != "" {
 			json.Unmarshal(line, &entry)
+			if len(ips) > 0 {
+				if _, ok := ips[entry.IP]; !ok {
+					continue
+				}
+			}
 			if len(entry.CMS) > 0 {
 				for _, v := range entry.CMS {
-
 					if v.Vendor == *cmsVendor && v.CanonicalVersion == *canonicalVersion {
 						updateCount++
 						entries[entry.IP] = v.Version
@@ -72,7 +87,11 @@ func main() {
 			}
 		} else if *serverVendor != "" {
 			json.Unmarshal(line, &entry)
-
+			if len(ips) > 0 {
+				if _, ok := ips[entry.IP]; !ok {
+					continue
+				}
+			}
 			if len(entry.Agents) > 0 {
 				for _, v := range entry.Agents {
 					if v.Vendor == *serverVendor && v.CanonicalVersion == *canonicalVersion {
@@ -83,6 +102,11 @@ func main() {
 			}
 		} else if *sshVendor != "" {
 			json.Unmarshal(line, &sshEntry)
+			if len(ips) > 0 {
+				if _, ok := ips[sshEntry.IP]; !ok {
+					continue
+				}
+			}
 			if sshEntry.Vendor == *sshVendor {
 				if *stringVersion != "" {
 					if sshEntry.SoftwareVersion == *stringVersion {
@@ -204,3 +228,20 @@ type PairList []Pair
 func (p PairList) Len() int           { return len(p) }
 func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+// readLines reads a whole file into memory
+// and returns a slice of its lines.
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}
