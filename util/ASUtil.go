@@ -64,27 +64,6 @@ func ASUtilInitialise() {
 	readInMaxMindASDBCSV()
 }
 
-//func FindAS(ip string) (string, string) {
-//	if len(maxMindASDB) == 0 {
-//		panic(errors.New("ASDB(s) have not been initialised! Initialise first."))
-//	}
-//	if net.ParseIP(ip).To4() == nil {
-//		panic(errors.New(fmt.Sprintf("%v is not an IPv4 address\n", ip)))
-//	}
-//
-//	ipToCheck := calculateMaxMindIpValue(ip)
-//	asId := "Not found"
-//	asOwner := "Not found"
-//	for _, v := range maxMindASDB {
-//		if ipToCheck >= v.startIP && ipToCheck <= v.endIp {
-//			asId = v.asId
-//			asOwner = v.asOwner
-//			break
-//		}
-//	}
-//	return asId, asOwner
-//}
-
 func FindAS(ip string) (string, string) {
 	if asnRadixTree == nil {
 		panic(errors.New("ASDB(s) have not been initialised! Initialise first."))
@@ -169,20 +148,6 @@ func downloadMaxMindASLite() {
 
 	_, err2 := io.Copy(out, resp.Body)
 	Check(err2)
-}
-
-func calculateMaxMindIpValue(ip string) int {
-	ipDigitsString := strings.Split(ip, ".")
-	var ipDigits = []int{}
-
-	for _, i := range ipDigitsString {
-		j, err := strconv.Atoi(i)
-		if err != nil {
-			panic(err)
-		}
-		ipDigits = append(ipDigits, j)
-	}
-	return (16777216 * ipDigits[0]) + (65536 * ipDigits[1]) + (256 * ipDigits[2]) + ipDigits[3]
 }
 
 func calculateIPFromMaxmindValue(ipnum int) net.IP {
