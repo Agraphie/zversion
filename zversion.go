@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/agraphie/zversion/analysis"
@@ -11,11 +9,7 @@ import (
 	"github.com/agraphie/zversion/util"
 	"log"
 	"os"
-	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"strings"
-	"syscall"
 )
 
 var (
