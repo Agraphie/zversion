@@ -51,10 +51,10 @@ func ASUtilInitialise() {
 	} else {
 		info, err := os.Stat(maxmindAsDBFile)
 		Check(err)
-		fileOldMonth := info.ModTime().Month() < time.Now().Month()
-		fileOldDay := info.ModTime().Day() >= SecondTuesday()
+		dateFile := time.Date(info.ModTime().Year(), info.ModTime().Month(), info.ModTime().Day(), 0, 0, 0, 0, time.UTC)
+		dateNewFileAvailable := time.Date(time.Now().Year(), time.Now().Month(), firstTuesdayOfMonth(time.Now().Month()), 0, 0, 0, 0, time.UTC)
 
-		if fileOldMonth || fileOldDay {
+		if dateFile.Before(dateNewFileAvailable) && time.Now().After(dateNewFileAvailable) {
 			os.Remove(maxmindAsDBFile)
 			downloadMaxMindASLite()
 			Unzip(maxmindAsDBZipFile, AS_FOLDER)

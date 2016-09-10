@@ -190,22 +190,9 @@ func AppendZeroToVersion(version string) string {
 	return version
 }
 
-func firstTuesdayOfMonth() bool {
-	result := false
-	t := time.Now()
-
-	if t.Day() <= 7 {
-		if t.Weekday() == time.Tuesday {
-			result = true
-		}
-	}
-
-	return result
-}
-
-func SecondTuesday() int {
-	t := time.Date(2017, 12, 8, 0, 0, 0, 0, time.UTC)
-	return (15-int(t.Weekday()))%14 + 2
+func firstTuesdayOfMonth(month time.Month) int {
+	t := time.Date(time.Now().Year(), month, 1, 0, 0, 0, 0, time.UTC)
+	return (9-int(t.Weekday()))%7 + 1
 }
 
 func Unzip(src, dest string) error {
