@@ -53,7 +53,7 @@ type inputEntry struct {
 				Comments         string
 			}
 			Server_key_exchange_init struct {
-				HostKeyAlgorithms NameList
+				Host_Key_Algorithms NameList
 			}
 		}
 	}
@@ -185,7 +185,7 @@ func transform(inputEntry inputEntry) SSHEntry {
 		Comments:          inputEntry.Data.SSH.Server_protocol.Comments,
 		Raw_banner:        inputEntry.Data.SSH.Server_protocol.Raw_banner,
 		BaseEntry:         inputEntry.BaseEntry,
-		HostKeyAlgorithms: inputEntry.Data.SSH.Server_key_exchange_init.HostKeyAlgorithms,
+		HostKeyAlgorithms: inputEntry.Data.SSH.Server_key_exchange_init.Host_Key_Algorithms,
 		Error:             inputEntry.Error}
 
 	return sshEntry

@@ -126,20 +126,28 @@ var serverHeaderNotCleaned uint64 = 0
 var serverHeaderCleaned uint64 = 0
 
 func cleanAndAssign(agentString string, httpEntry *ZversionEntry) {
-	for k, v := range m {
-		match := v.FindStringSubmatch(agentString)
-		if k == "nginx" && nginxCloudflareRegex.FindStringSubmatch(agentString) != nil {
-			k = "cloudflare-nginx"
-		} else if k == "nginx" && nginxYunjiasuRegex.FindStringSubmatch(agentString) != nil {
-			k = "yunjiasu-nginx"
-		}
-		if match != nil {
-			version := util.AppendZeroToVersion(match[1])
-			canonicalVersion := util.MakeVersionCanonical(version)
-			httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: k, Version: version, CanonicalVersion: canonicalVersion})
-			atomic.AddUint64(&serverHeaderCleaned, 1)
+	if agentString == "AkamaiGHost" {
+		version := ""
+		canonicalVersion := ""
+		httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: "AkamaiGHost", Version: version, CanonicalVersion: canonicalVersion})
+		atomic.AddUint64(&serverHeaderCleaned, 1)
+		return
+	} else {
+		for k, v := range m {
+			match := v.FindStringSubmatch(agentString)
+			if k == "nginx" && nginxCloudflareRegex.FindStringSubmatch(agentString) != nil {
+				k = "cloudflare-nginx"
+			} else if k == "nginx" && nginxYunjiasuRegex.FindStringSubmatch(agentString) != nil {
+				k = "yunjiasu-nginx"
+			}
+			if match != nil {
+				version := util.AppendZeroToVersion(match[1])
+				canonicalVersion := util.MakeVersionCanonical(version)
+				httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: k, Version: version, CanonicalVersion: canonicalVersion})
+				atomic.AddUint64(&serverHeaderCleaned, 1)
 
-			return
+				return
+			}
 		}
 	}
 	httpEntry.Agents = append(httpEntry.Agents, Server{Vendor: agentString})

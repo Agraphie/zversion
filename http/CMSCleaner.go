@@ -52,6 +52,7 @@ func cleanAndAssignCMS(rawBody string, xContentEncodedByField []string, httpEntr
 				atomic.AddUint64(&wpPath, 1)
 				newCMS := CMS{Vendor: "WordPress", Version: "", CanonicalVersion: ""}
 				httpEntry.CMS = append(httpEntry.CMS, newCMS)
+				atomic.AddUint64(&cmsCleaned, 1)
 
 			}
 		}
