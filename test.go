@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+func firstTuesdayOfMonth() int {
+	t := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
+	return (9-int(t.Weekday()))%7 + 8
+}
+
 func SecondTuesday() int {
 	t := time.Date(2017, 12, 8, 0, 0, 0, 0, time.UTC)
 	return (15-int(t.Weekday()))%14 + 2
@@ -44,4 +49,5 @@ func main() {
 		log.Println("Good!")
 	}
 	println(SecondTuesday())
+	println(firstTuesdayOfMonth())
 }
