@@ -1,4 +1,4 @@
-HEAD / HTTP/1.1^M
-Host: %s^M
-^M
+HEAD / HTTP/1.1
+Host: %s
+User-Agent: Go-http-client/1.1
 
