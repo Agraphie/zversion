@@ -29,7 +29,8 @@ For all further usage of ZVersion please refrain to
 ```
 
 ### Scan Execution
-SSH and HTTP scans can be performed, but only with the help of [ZMap](https://zmap.io/) and ZGrab. Thus, ZGrab and ZMap have to be installed on the scanning machine. Please make sure that the ZMap and ZGrab work correctly before continuing. In order to launch a restricted scan i.e. only specific IPs should be scanned, please provide an input file to ZVersion, where one line is one IP. VHost scans can be launched by specifing the input file as follows
+SSH and HTTP scans can be performed, but only with the help of [ZMap](https://zmap.io/) and ZGrab. Thus, ZGrab and ZMap have to be installed on the scanning machine. Please make sure that the ZMap and ZGrab work correctly before continuing. Furthermore, scanning requires the files "http-req" and "http-req-domain" to be present in the same folder as the ZVersion executable.
+In order to launch a restricted scan i.e. only specific IPs should be scanned, please provide an input file to ZVersion, where one line is one IP. VHost scans can be launched by specifing the input file as follows
 ```
 137.226.107.63,www.rwth-aachen.de
 ```
